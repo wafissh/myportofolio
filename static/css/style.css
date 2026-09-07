@@ -290,8 +290,74 @@ h1,
   right: 0;
   padding: 20px;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-  color: white;
+  color: rgb(255, 255, 255);
+  
 }
+
+.projects-section{
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-image: url("../img/section2.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+
+
+}
+
+.cloud-layer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none; /* Biar tombol/link tetap bisa diklik */
+  will-change: transform;
+}
+
+/* Gambar awannya */
+.cloud-layer img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated; /* Jaga piksel tetap tajam */
+}
+
+
+.cloud-back {
+  z-index: 2;
+  width: 350px;       
+  bottom: 50%;        
+  right: 5%;         
+  z-index: 2;
+}
+
+.cloud-mid {
+  z-index: 5;
+  width: 450px;       /* Ukuran lebar awan */
+  bottom: 50%;        /* Posisi Y */
+  left: 80%;        /* Posisi X (bisa minus kalau mau agak keluar layar) */
+}
+
+
+.cloud-front {
+  width: 600px;       /* Ukuran lebar awan */
+  bottom: 70%;      /* Posisi Y (nempel di bawah hero) */
+  left: 80%;     /* Posisi X */
+  z-index: 15;        /* Di atas konten kalau mau nutupin dikit pas scroll */
+}
+
+.cloud-front-2 {
+  width: 600px;       /* Ukuran lebar awan */
+  bottom: 70%;      /* Posisi Y (nempel di bawah hero) */
+  left: -10%;     /* Posisi X */
+  z-index: 15;        /* Di atas konten kalau mau nutupin dikit pas scroll */
+}
+
+.cloud-bottom{
+  z-index: 15;
+  
+}
+
+
 
 .my-project {
   text-align: center;
