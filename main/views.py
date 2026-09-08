@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from main.models import Experience
+from main.models import Experience, Project, TechStack
 
 
 def show_main(request):
@@ -22,3 +22,16 @@ def show_experience(request):
         "experience_list": Experience.objects.all(),
     }
     return render(request, "experience.html", context)
+
+def show_about(request):
+    context = {
+        "about-me-": "Halo ini ada moockup untuk awal awal jadinya ga telrlau serius sih tpai nanti bakal panjang juga",
+        "download-cv-url": ".......",
+        "contact-me": "....",
+        "experience_list": Experience.objects.all(),
+        "project_list": Project.objects.all(),
+        "tech-stack": TechStack.objects.all(),
+        
+        
+    }
+    return render(request, "about.html", context)
