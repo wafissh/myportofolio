@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ name }} - Projects</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+    <script src="/static/js/app.js?v=8" defer></script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a href="{% url 'main:show_main' %}" class="brand">Wien</a>
+            <nav>
+                <a href="{% url 'main:show_main' %}">Profile</a>
+                <a href="{% url 'main:show_experience' %}">Experience</a>
+                <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle dark mode">
+                    <span class="icon-sun">&#9788;</span>
+                    <span class="icon-moon">&#9790;</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="projects-page-section">
+            <div class="container">
+                <a href="{% url 'main:show_main' %}" class="back-link">&#8592; Back to Home</a>
+                <h1 class="projects-page-title">Selected Projects</h1>
+                <p class="projects-page-desc">A collection of web apps and sites I've designed, built, and optimized</p>
+
+                {% if project_list %}
+                    <div class="projects-dark-grid">
+                        {% for project in project_list %}
+                            <article class="project-dark-card">
+                                <div class="project-dark-image">
+                                    <img src="{{ project.thumbnail }}" alt="{{ project.title }}">
+                                </div>
+                                <div class="project-dark-info">
+                                    <h3>{{ project.title }}</h3>
+                                    {% if project.role %}
+                                        <p class="project-dark-role">{{ project.role }}</p>
+                                    {% endif %}
+                                    <p class="project-dark-desc">{{ project.description }}</p>
+                                    {% if project.tech_stacks.all %}
+                                        <div class="project-dark-tech">
+                                            {% for tech in project.tech_stacks.all %}
+                                                <span class="pill-dark">{{ tech.name }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="project-dark-footer">
+                                        {% if project.project_url %}
+                                            <a href="{{ project.project_url }}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>
+                                        {% else %}
+                                            <a href="#" class="project-dark-link">READ CASE STUDY &#8599;</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+
+                    {% if project_list.has_other_pages %}
+                        <div class="pagination">
+                            {% if project_list.has_previous %}
+                                <a href="?page={{ project_list.previous_page_number }}" class="page-btn">&#8592; Prev</a>
+                            {% endif %}
+                            {% for num in project_list.paginator.page_range %}
+                                {% if project_list.number == num %}
+                                    <span class="page-btn active">{{ num }}</span>
+                                {% elif num > project_list.number|add:'-3' and num < project_list.number|add:'3' %}
+                                    <a href="?page={{ num }}" class="page-btn">{{ num }}</a>
+                                {% endif %}
+                            {% endfor %}
+                            {% if project_list.has_next %}
+                                <a href="?page={{ project_list.next_page_number }}" class="page-btn">Next &#8594;</a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="empty-experience-state">
+                        <p class="empty-experience-text">On searching for this project</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2026 {{ name }}.. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+        </div>
+    </footer>
+</body>
+</html>

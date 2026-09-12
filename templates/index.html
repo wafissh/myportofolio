@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
-    <script src="static/js/app.js" defer></script>
+    <script src="/static/js/app.js?v=8" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -20,6 +20,10 @@
             <nav>
                 <a href="{% url 'main:show_main' %}">Profile</a>
                 <a href="{% url 'main:show_experience' %}">Experience</a>
+                <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle dark mode">
+                    <span class="icon-sun">&#9788;</span>
+                    <span class="icon-moon">&#9790;</span>
+                </button>
             </nav>
         </div>
     </header>
@@ -77,44 +81,163 @@
                 <div id="cloud-front-2" class="cloud-layer cloud-front-2">
                     <img src="/static/img/awan3.png" alt="Cloud Front-2" class="cloud-img" />
                 </div>
-                <div id="cloud-bottom" class="cloud-layer cloud-bottom">
-                    <img src="/static/img/awan-bottom.png" alt="Cloud Bottom" class="cloud-img" />
-                </div>
         </section>
         <section class="about-me">
 
 
 
         </section>
-    <section class="projects-section">
-        <div class="container">
-            <h1 class="my-project">My Projects</h1>
-            <div class="card-container">
-                <div class="card">
-                    <img src="/static/img/project1.png" alt="Project 1">
-                    <div class="card-content">
-                        <h3>Fino AI</h3>
-                        <p>Telegram bot pencatat keuangan otomatis dengan AI.</p>
+        {% if featured_project %}
+        <div class="featured-card">
+            <div class="card-image">
+                <img src="{{ featured_project.thumbnail }}" alt="{{ featured_project.title }}">
+            </div>
+            <div class="card-content">
+                <span class="badge-subtitle">FEATURED BUILD</span>
+                <h2 class="card-title">{{ featured_project.title }}</h2>
+                <p class="card-description">{{ featured_project.description }}</p>
+                {% if featured_project.tech_stacks.all %}
+                    <div class="tech-stack">
+                        {% for tech in featured_project.tech_stacks.all %}
+                            <span class="pill">{{ tech.name }}</span>
+                        {% endfor %}
                     </div>
-                </div>
-                <div class="card">
-                    <img src="/static/img/project2.png" alt="Project 2">
-                    <div class="card-content">
-                        <h3>Gym Attendance & Dashboard</h3>
-                        <p>Smart Gym Attendance System </p>
-                    </div>
-                </div>
-                <div class="card">
-                    <img src="/static/img/project3.png" alt="Project 3">
-                    <div class="card-content">
-                        <h3>Portofolio</h3>
-                        <p>My Portofolio Website</p>
-                    </div>
-                </div>
-                
+                {% endif %}
+                <a href="{% url 'main:show_main' %}" class="cta-button">
+                    View projects <span>&#8599;</span>
+                </a>
             </div>
         </div>
-    </section>
+        {% endif %}
+
+        {% if featured_experiences %}
+        <section class="experience-list-section">
+            <div class="container">
+                <div class="experience-list-header">
+                    <h2>Experience</h2>
+                    <a href="{% url 'main:show_experience' %}" class="view-all-link">View Details &#8599;</a>
+                </div>
+                <div class="experience-list">
+                    {% for exp in featured_experiences %}
+                        <div class="experience-row">
+                            <div class="experience-date">
+                                {{ exp.started_at|date:"M Y" }} - {% if exp.is_ongoing %}Present{% else %}{{ exp.ended_at|date:"M Y" }}{% endif %}
+                            </div>
+                            <div class="experience-info">
+                                <h3>{{ exp.title }}</h3>
+                                <p class="experience-meta">{{ exp.get_category_display }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="projects-dark-section">
+            <div class="container">
+                <div class="experience-list-header">
+                    <h2>Projects</h2>
+                    <a href="{% url 'main:show_projects' %}" class="view-all-link">View All &#8599;</a>
+                </div>
+                {% if project_list %}
+                    <div class="projects-dark-grid">
+                        {% for project in project_list %}
+                            <article class="project-dark-card">
+                                <div class="project-dark-image">
+                                    <img src="{{ project.thumbnail }}" alt="{{ project.title }}">
+                                </div>
+                                <div class="project-dark-info">
+                                    <h3>{{ project.title }}</h3>
+                                    {% if project.role %}
+                                        <p class="project-dark-role">{{ project.role }}</p>
+                                    {% endif %}
+                                    <p class="project-dark-desc">{{ project.description }}</p>
+                                    {% if project.tech_stacks.all %}
+                                        <div class="project-dark-tech">
+                                            {% for tech in project.tech_stacks.all %}
+                                                <span class="pill-dark">{{ tech.name }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="project-dark-footer">
+                                        {% if project.project_url %}
+                                            <a href="{{ project.project_url }}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>
+                                        {% else %}
+                                            <a href="#" class="project-dark-link">READ CASE STUDY &#8599;</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-experience-state">
+                        <p class="empty-experience-text">On searching for this project</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if tech_stack %}
+        <section class="technologies-section">
+            <div class="container">
+                <div class="experience-list-header">
+                    <h2>Technologies</h2>
+                    <a href="{% url 'main:show_technologies' %}" class="view-all-link">View All &#8599;</a>
+                </div>
+            </div>
+            <div class="marquee-wrapper">
+                <div class="marquee-track">
+                    {% for tech in tech_stack %}
+                        <span class="tech-marquee-pill">
+                            {% if tech.icon_class %}
+                                <i class="{{ tech.icon_class }}"></i>
+                            {% endif %}
+                            {{ tech.name }}
+                        </span>
+                    {% endfor %}
+                    {% for tech in tech_stack %}
+                        <span class="tech-marquee-pill">
+                            {% if tech.icon_class %}
+                                <i class="{{ tech.icon_class }}"></i>
+                            {% endif %}
+                            {{ tech.name }}
+                        </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="experience-list-section">
+            <div class="container">
+                <div class="experience-list-header">
+                    <h2>Education</h2>
+                </div>
+                {% if education_list %}
+                    <div class="experience-list">
+                        {% for edu in education_list %}
+                            <div class="experience-row">
+                                <div class="experience-date">
+                                    {{ edu.started_at|date:"M Y" }} - {% if edu.is_ongoing %}Present{% else %}{{ edu.ended_at|date:"M Y" }}{% endif %}
+                                </div>
+                                <div class="experience-info">
+                                    <h3>{{ edu.title }}</h3>
+                                    <p class="experience-meta">{{ edu.education_loc }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-experience-state">
+                        <p class="empty-experience-text">On searching for this education</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        
 
     
     </main>
