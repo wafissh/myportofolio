@@ -8,16 +8,34 @@
     <section class="projects-page-section">
         <div class="container">
             <a href="{% url 'main:show_main' %}" class="back-link">&#8592; Back to Home</a>
-            <h1 class="projects-page-title">Selected Projects</h1>
-            <p class="projects-page-desc">A collection of web apps and sites I've designed, built, and optimized</p>
+
+            <div class="project-header">
+                <h1 class="projects-page-title">Selected Projects</h1>
+                <a href="{% url 'main:create_project' %}" class="button project-add-button">
+                    <span aria-hidden="true">+</span>
+                    Tambah Proyek
+                </a>
+            </div>
+
+            <form method="get" action="{% url 'main:show_projects' %}" class="project-search">
+                <input type="search"
+                       name="title"
+                       value="{{ title_query }}"
+                       placeholder="Cari berdasarkan nama proyek"
+                       class="project-search__input"
+                       aria-label="Cari berdasarkan nama proyek">
+                <button type="submit" class="button">Cari</button>
+            </form>
 
             {% if project_list %}
                 <div class="projects-dark-grid">
                     {% for project in project_list %}
                         <article class="project-dark-card">
-                            <div class="project-dark-image">
-                                <img src="{{ project.thumbnail }}" alt="{{ project.title }}">
-                            </div>
+                            {% if project.thumbnail %}
+                                <div class="project-dark-image">
+                                    <img src="{{ project.thumbnail }}" alt="{{ project.title }}">
+                                </div>
+                            {% endif %}
                             <div class="project-dark-info">
                                 <h3>{{ project.title }}</h3>
                                 {% if project.role %}
@@ -34,9 +52,10 @@
                                 <div class="project-dark-footer">
                                     {% if project.project_url %}
                                         <a href="{{ project.project_url }}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>
-                                    {% else %}
-                                        <a href="#" class="project-dark-link">READ CASE STUDY &#8599;</a>
                                     {% endif %}
+                                </div>
+                                <div class="project-actions">
+                                    {% include "components/project_delete_modal.html" with project=project %}
                                 </div>
                             </div>
                         </article>
@@ -46,23 +65,27 @@
                 {% if project_list.has_other_pages %}
                     <div class="pagination">
                         {% if project_list.has_previous %}
-                            <a href="?page={{ project_list.previous_page_number }}" class="page-btn">&#8592; Prev</a>
+                            <a href="?page={{ project_list.previous_page_number }}{% if title_query %}&title={{ title_query }}{% endif %}" class="page-btn">&#8592; Prev</a>
                         {% endif %}
                         {% for num in project_list.paginator.page_range %}
                             {% if project_list.number == num %}
                                 <span class="page-btn active">{{ num }}</span>
                             {% elif num > project_list.number|add:'-3' and num < project_list.number|add:'3' %}
-                                <a href="?page={{ num }}" class="page-btn">{{ num }}</a>
+                                <a href="?page={{ num }}{% if title_query %}&title={{ title_query }}{% endif %}" class="page-btn">{{ num }}</a>
                             {% endif %}
                         {% endfor %}
                         {% if project_list.has_next %}
-                            <a href="?page={{ project_list.next_page_number }}" class="page-btn">Next &#8594;</a>
+                            <a href="?page={{ project_list.next_page_number }}{% if title_query %}&title={{ title_query }}{% endif %}" class="page-btn">Next &#8594;</a>
                         {% endif %}
                     </div>
                 {% endif %}
             {% else %}
                 <div class="empty-experience-state">
-                    <p class="empty-experience-text">On searching for this project</p>
+                    {% if title_query %}
+                        <p class="empty-experience-text">Tidak ada proyek dengan nama tersebut.</p>
+                    {% else %}
+                        <p class="empty-experience-text">Belum ada proyek yang ditambahkan.</p>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>

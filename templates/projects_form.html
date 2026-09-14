@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block meta %}
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+<title>Add Project - {{ name }}</title>
+{% endblock meta %}
+{% block content %}
+<main>
+    <section class="experience-section">
+        <div class="container">
+            <a href="{% url 'main:show_projects' %}" class="back-link">&#8592; Back to Projects</a>
+            <h1 style="font-family: 'Pixelify Sans', sans-serif; font-size: clamp(2rem, 5vw, 3rem); color: var(--ink); margin-bottom: 1.5rem;">Add New Project</h1>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="form-success">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" action="{% url 'main:create_project' %}" class="project-form">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}
+                            <p class="form-error">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                <div class="form-actions">
+                    <button type="submit" class="button">Tambah Project</button>
+                    <a href="{% url 'main:show_projects' %}" class="button button-secondary">Batal</a>
+                </div>
+            </form>
+        </div>
+    </section>
+</main>
+{% endblock content %}
