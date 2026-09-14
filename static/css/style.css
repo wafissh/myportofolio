@@ -426,13 +426,13 @@ h1,
   grid-area: photo;
   align-self: center;
   position: relative;
-  width: 320px;
+  width: 340px;
 }
 
 .photo-block {
   position: absolute;
-  top: 1.25rem;
-  left: 1.25rem;
+  top: 0.75rem;
+  left: 0.75rem;
   width: 100%;
   height: 100%;
   background-color: #8b5e3c;
@@ -455,6 +455,7 @@ h1,
   object-fit: cover;
   border-radius: var(--radius);
   border: 3px solid var(--ink);
+
 }
 
 .site-footer {

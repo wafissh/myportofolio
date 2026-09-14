@@ -1,81 +1,52 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ name }} - Experience</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
-    <script src="/static/js/app.js?v=8" defer></script>
-</head>
-<body>
-    <header class="site-header">
+{% extends 'base.html' %}
+{% block meta %}
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+<script src="/static/js/app.js?v=8" defer></script>
+{% endblock meta %}
+{% block content %}
+<main>
+    <section class="experience-section" id="experience">
         <div class="container">
-            <a href="{% url 'main:show_main' %}" class="brand">Wien</a>
-            <nav>
-                <a href="{% url 'main:show_main' %}">Profile</a>
-                <a href="{% url 'main:show_experience' %}">Experience</a>
-                <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle dark mode">
-                    <span class="icon-sun">&#9788;</span>
-                    <span class="icon-moon">&#9790;</span>
-                </button>
-            </nav>
-        </div>
-    </header>
+            <a href="{% url 'main:show_main' %}" class="back-link">&#8592; Back to Home</a>
+            <h2 class="section-title">Experience</h2>
 
-    <main>
-        <section class="experience-section" id="experience">
-            <div class="container">
-                <a href="{% url 'main:show_main' %}" class="back-link">&#8592; Back to Home</a>
-                <h2 class="section-title">Experience</h2>
+            <div class="category-buttons">
+                {% for key, label in exp_category_labels.items %}
+                    <button class="btn filter-btn" data-category="{{ key }}">{{ label }}</button>
+                {% endfor %}
+            </div>
 
-                <div class="category-buttons">
-                    {% for key, label in exp_category_labels.items %}
-                        <button class="btn filter-btn" data-category="{{ key }}">{{ label }}</button>
+            {% if experience_list %}
+                <div class="timeline">
+                    {% for year, exps in exp_by_year.items %}
+                        <div class="timeline-year">{{ year }}</div>
+                        {% for experience in exps %}
+                            <article class="timeline-item" data-category="{{ experience.category }}">
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-header">
+                                        <span class="experience-category">{{ experience.get_category_display }}</span>
+                                        <span class="timeline-date">
+                                            {{ experience.started_at|date:"M Y" }}
+                                            {% if not experience.is_ongoing %}
+                                                - {{ experience.ended_at|date:"M Y" }}
+                                            {% else %}
+                                                - Present
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <h3>{{ experience.title }}</h3>
+                                    <p class="experience-description">{{ experience.description }}</p>
+                                </div>
+                            </article>
+                        {% endfor %}
                     {% endfor %}
                 </div>
-
-                {% if experience_list %}
-                    <div class="timeline">
-                        {% for year, exps in exp_by_year.items %}
-                            <div class="timeline-year">{{ year }}</div>
-                            {% for experience in exps %}
-                                <article class="timeline-item" data-category="{{ experience.category }}">
-                                    <div class="timeline-dot"></div>
-                                    <div class="timeline-content">
-                                        <div class="timeline-header">
-                                            <span class="experience-category">{{ experience.get_category_display }}</span>
-                                            <span class="timeline-date">
-                                                {{ experience.started_at|date:"M Y" }}
-                                                {% if not experience.is_ongoing %}
-                                                    - {{ experience.ended_at|date:"M Y" }}
-                                                {% else %}
-                                                    - Present
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <h3>{{ experience.title }}</h3>
-                                        <p class="experience-description">{{ experience.description }}</p>
-                                    </div>
-                                </article>
-                            {% endfor %}
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                <div class="empty-experience-state" style="display:none;">
-                    <p class="empty-experience-text">On searching for this experience</p>
-                </div>
+            {% endif %}
+            <div class="empty-experience-state" style="display:none;">
+                <p class="empty-experience-text">On searching for this experience</p>
             </div>
-        </section>
-    </main>
-
-    <footer class="site-footer">
-        <div class="container">
-            <p>&copy; 2026 {{ name }}.. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
         </div>
-    </footer>
-</body>
-</html>
+    </section>
+</main>
+{% endblock content %}

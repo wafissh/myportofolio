@@ -1,65 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ name }} - About</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" type='text/css' href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" />
-    <script src="/static/js/app.js?v=8" defer></script>
-</head>
-<body>
-    <header class="site-header">
-        <div class="container">
-            <a href="{% url 'main:show_main' %}" class="brand">Wien</a>
-            <nav>
-                <a href="{% url 'main:show_main' %}">Profile</a>
-                <a href="{% url 'main:show_experience' %}">Experience</a>
-                <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle dark mode">
-                    <span class="icon-sun">&#9788;</span>
-                    <span class="icon-moon">&#9790;</span>
-                </button>
-            </nav>
+{% extends 'base.html' %}
+{% block meta %}
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" type='text/css' href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" />
+<script src="/static/js/app.js?v=8" defer></script>
+{% endblock meta %}
+{% block content %}
+<section class="tech-stack-section">
+    <div class="container">
+        <a href="{% url 'main:show_main' %}" class="back-link">&#8592; Back to Home</a>
+        <h2 class="section-title">Tech Stack</h2>
+        <div class="category-buttons">
+            <button class="btn filter-btn active" data-category="all">All</button>
+            {% for key, label in category_labels.items %}
+                <button class="btn filter-btn" data-category="{{ key }}">{{ label }}</button>
+            {% endfor %}
         </div>
-    </header>
-
-    <!-- Tech Stack Section -->
-    <section class="tech-stack-section">
-        <div class="container">
-            <a href="{% url 'main:show_main' %}" class="back-link">&#8592; Back to Home</a>
-            <h2 class="section-title">Tech Stack</h2>
-            <div class="category-buttons">
-                <button class="btn filter-btn active" data-category="all">All</button>
-                {% for key, label in category_labels.items %}
-                    <button class="btn filter-btn" data-category="{{ key }}">{{ label }}</button>
-                {% endfor %}
-            </div>
-            {% if tech_stack %}
-                    <div class="tech-list">
-                        {% for tech in tech_stack %}
-                            <div class="tech-card" data-category="{{ tech.category }}">
-                                <div class="tech-icon">
-                                    {% if tech.icon_class %}
-                                        <i class="{{ tech.icon_class }}"></i>
-                                    {% else %}
-                                        ⚙️
-                                    {% endif %}
-                                </div>
-                                <span class="tech-name">{{ tech.name }}</span>
+        {% if tech_stack %}
+                <div class="tech-list">
+                    {% for tech in tech_stack %}
+                        <div class="tech-card" data-category="{{ tech.category }}">
+                            <div class="tech-icon">
+                                {% if tech.icon_class %}
+                                    <i class="{{ tech.icon_class }}"></i>
+                                {% else %}
+                                    ⚙️
+                                {% endif %}
                             </div>
-                        {% endfor %}
-                    </div>
-            {% else %}
-                <div class="empty-tech-state">
-                    <p>Tech stack akan ditampilkan di sini</p>
+                            <span class="tech-name">{{ tech.name }}</span>
+                        </div>
+                    {% endfor %}
                 </div>
-            {% endif %}
-        </div>
-    </section>
-
-
-</body>
+        {% else %}
+            <div class="empty-tech-state">
+                <p>Tech stack akan ditampilkan di sini</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock content %}
