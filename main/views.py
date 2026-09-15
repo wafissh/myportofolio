@@ -42,6 +42,7 @@ def show_main(request):
 
 
 def show_technologies(request):
+
     tech_stack = TechStack.objects.all()
     raw_categories = TechStack.objects.values_list("category", flat=True).distinct()
     category_labels = {cat: TechStack.Category(cat).label for cat in raw_categories}
@@ -84,13 +85,18 @@ def delete_project(request, project_id):
 
 
 def show_projects(request):
-    title_query = request.GET.get("title", "").strip()
-    project_list = Project.objects.all()
-    if title_query:
-        project_list = project_list.filter(title__icontains=title_query)
-    paginator = Paginator(project_list, 6)
+    json_response = get_projects_json(request)
+
+    projects = serializers.deserialize(
+        "json",
+        json_response.content.decode("utf-8"),
+    )
+    projects = [project.object for project in projects]
+
+    paginator = Paginator(projects, 6)
     page = request.GET.get("page")
     projects = paginator.get_page(page)
+    title_query = request.GET.get("title", "").strip()
     context = {
         "name": "Wien Muhammad Hafizhurrohman",
         "project_list": projects,
@@ -108,6 +114,21 @@ def create_project(request):
     context = {
         "name": "Wien Muhammad Hafizhurrohman",
         "form": form,
+    }
+    return render(request, "projects_form.html", context)
+
+
+def update_project(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    form = ProjectForm(request.POST or None, instance=project)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Proyek berhasil diperbarui!")
+        return redirect("main:show_projects")
+    context = {
+        "name": "Wien Muhammad Hafizhurrohman",
+        "form": form,
+        "project": project,
     }
     return render(request, "projects_form.html", context)
 

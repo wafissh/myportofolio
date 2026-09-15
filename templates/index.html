@@ -33,9 +33,9 @@
                     </div>
                 </dl>
                 <div class="social-links">
-                    <a href="github.com/wafissh" class="social-link">GitHub</a>
-                    <a href="www.linkedin.com/in/wien-muhammad-hafizhurrohman-651614297" class="social-link">LinkedIn</a>
-                    <a href="hafizhurrohman330@gmail.com" class="social-link">Email</a>
+                    <a href="https://github.com/wafissh" class="social-link">GitHub</a>
+                    <a href="https://www.linkedin.com/in/wien-muhammad-hafizhurrohman-651614297" class="social-link">LinkedIn</a>
+                    <a href="mailto:hafizhurrohman330@gmail.com" class="social-link">Email</a>
                 </div>
             </div>
         </div>
@@ -66,7 +66,7 @@
     {% if featured_project %}
     <div class="featured-card">
         <div class="card-image">
-            <img src="{{ featured_project.thumbnail }}" alt="{{ featured_project.title }}">
+            <img src="{{ featured_project.get_thumbnail_url }}" alt="{{ featured_project.title }}">
         </div>
         <div class="card-content">
             <span class="badge-subtitle">FEATURED BUILD</span>
@@ -121,7 +121,7 @@
                     {% for project in project_list %}
                         <article class="project-dark-card">
                             <div class="project-dark-image">
-                                <img src="{{ project.thumbnail }}" alt="{{ project.title }}">
+                                <img src="{{ project.get_thumbnail_url }}" alt="{{ project.title }}">
                             </div>
                             <div class="project-dark-info">
                                 <h3>{{ project.title }}</h3>

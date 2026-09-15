@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% block meta %}
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
-<title>Add Project - {{ name }}</title>
+<title>{% if project %}Edit Project{% else %}Add Project{% endif %} - {{ name }}</title>
 {% endblock meta %}
 {% block content %}
 <main>
     <section class="experience-section">
         <div class="container">
             <a href="{% url 'main:show_projects' %}" class="back-link">&#8592; Back to Projects</a>
-            <h1 style="font-family: 'Pixelify Sans', sans-serif; font-size: clamp(2rem, 5vw, 3rem); color: var(--ink); margin-bottom: 1.5rem;">Add New Project</h1>
+            <h1 style="font-family: 'Pixelify Sans', sans-serif; font-size: clamp(2rem, 5vw, 3rem); color: var(--ink); margin-bottom: 1.5rem;">{% if project %}Edit Project{% else %}Add New Project{% endif %}</h1>
 
             {% if messages %}
                 {% for message in messages %}
@@ -16,7 +16,7 @@
                 {% endfor %}
             {% endif %}
 
-            <form method="post" action="{% url 'main:create_project' %}" class="project-form">
+            <form method="post" action="{% if project %}{% url 'main:update_project' project.id %}{% else %}{% url 'main:create_project' %}{% endif %}" class="project-form">
                 {% csrf_token %}
                 {% for field in form %}
                     <div class="form-group">
@@ -28,7 +28,7 @@
                     </div>
                 {% endfor %}
                 <div class="form-actions">
-                    <button type="submit" class="button">Tambah Project</button>
+                    <button type="submit" class="button">{% if project %}Simpan Perubahan{% else %}Tambah Project{% endif %}</button>
                     <a href="{% url 'main:show_projects' %}" class="button button-secondary">Batal</a>
                 </div>
             </form>

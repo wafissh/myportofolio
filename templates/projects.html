@@ -31,11 +31,9 @@
                 <div class="projects-dark-grid">
                     {% for project in project_list %}
                         <article class="project-dark-card">
-                            {% if project.thumbnail %}
-                                <div class="project-dark-image">
-                                    <img src="{{ project.thumbnail }}" alt="{{ project.title }}">
-                                </div>
-                            {% endif %}
+                            <div class="project-dark-image">
+                                <img src="{{ project.get_thumbnail_url }}" alt="{{ project.title }}">
+                            </div>
                             <div class="project-dark-info">
                                 <h3>{{ project.title }}</h3>
                                 {% if project.role %}
@@ -53,6 +51,7 @@
                                     {% if project.project_url %}
                                         <a href="{{ project.project_url }}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>
                                     {% endif %}
+                                    <a href="{% url 'main:update_project' project.id %}" class="project-dark-link">EDIT &#9998;</a>
                                 </div>
                                 <div class="project-actions">
                                     {% include "components/project_delete_modal.html" with project=project %}

@@ -65,7 +65,7 @@ class Project(models.Model):
     slug = models.SlugField(unique=True)
     role = models.CharField(max_length=150, blank=True, help_text="Contoh: Frontend Developer & Deployment Specialist")
     description = models.TextField()
-    thumbnail = models.URLField()
+    thumbnail = models.URLField(blank=True)
     project_url = models.URLField(blank=True, null=True, help_text="Link ke live site atau GitHub")
     is_featured = models.BooleanField(default=False)
     
@@ -78,6 +78,10 @@ class Project(models.Model):
 
     def __str__(self):
         return self.title
+    
+    @property
+    def get_thumbnail_url(self):
+        return self.thumbnail if self.thumbnail else "/static/img/test_only.png"
     
 class Education(models.Model):
     title = models.CharField(max_length=255)

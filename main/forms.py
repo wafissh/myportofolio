@@ -62,3 +62,8 @@ class ProjectForm(ModelForm):
             "is_featured": CheckboxInput(),
             "tech_stacks": SelectMultiple(),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["thumbnail"].required = False
+        self.fields["project_url"].required = False

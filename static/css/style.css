@@ -71,7 +71,7 @@ h1,
   color: #fff;
 }
 
-[data-theeme="dark"] .projects-page-section{
+[data-theme="dark"] .projects-page-section{
   background-color: var(--paper);
 }
 [data-theme="dark"] .social-link:hover {
@@ -258,12 +258,12 @@ h1,
 
 .container h2{
   font-family: "Pixelify Sans", sans-serif;
-  font-size: 700;
+  font-weight: 700;
 }
 
 .site-header {
   font-family: "Pixelify Sans", sans-serif;
-  font-size: 700;
+  font-weight: 700;
 
   position: absolute;
   top: 0;
@@ -321,7 +321,7 @@ h1,
   background-repeat: no-repeat;
 
   font-family: "Pixelify Sans", sans-serif;
-  font-size: 400;
+  font-weight: 400;
 
   width: fit-content;
   max-width: 100%;
@@ -357,7 +357,7 @@ h1,
 
 .hero-identity h1 {
   font-family: "Pixelify Sans", sans-serif;
-  font-size: 500;
+  font-weight: 500;
   line-height: 0.95;
   font-size: clamp(3rem, 7vw, 5rem);
 }
@@ -806,6 +806,86 @@ h1,
 
   .social-links {
     justify-content: flex-start;
+  }
+
+  .cloud-back {
+    width: 150px;
+    bottom: 45%;
+    right: -5%;
+    z-index: 1;
+  }
+
+  .cloud-mid {
+    width: 200px;
+    bottom: 45%;
+    left: 75%;
+    z-index: 1;
+  }
+
+  .cloud-front {
+    width: 250px;
+    bottom: 55%;
+    left: 65%;
+    z-index: 1;
+  }
+
+  .cloud-front-2 {
+    width: 250px;
+    bottom: 55%;
+    left: -15%;
+    z-index: 1;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 768px) {
+  .cloud-back {
+    width: 250px;
+    bottom: 45%;
+    right: 0;
+  }
+
+  .cloud-mid {
+    width: 300px;
+    bottom: 45%;
+    left: 75%;
+  }
+
+  .cloud-front {
+    width: 400px;
+    bottom: 60%;
+    left: 70%;
+  }
+
+  .cloud-front-2 {
+    width: 400px;
+    bottom: 60%;
+    left: -10%;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1400px) {
+  .cloud-back {
+    width: 280px;
+    bottom: 48%;
+    right: 2%;
+  }
+
+  .cloud-mid {
+    width: 360px;
+    bottom: 48%;
+    left: 78%;
+  }
+
+  .cloud-front {
+    width: 480px;
+    bottom: 65%;
+    left: 75%;
+  }
+
+  .cloud-front-2 {
+    width: 480px;
+    bottom: 65%;
+    left: -8%;
   }
 }
 
