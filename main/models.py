@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User 
 
 class Experience(models.Model):
     EXPERIENCE_CHOICES = [
@@ -68,6 +69,9 @@ class Project(models.Model):
     thumbnail = models.URLField(blank=True)
     project_url = models.URLField(blank=True, null=True, help_text="Link ke live site atau GitHub")
     is_featured = models.BooleanField(default=False)
+    starred_by = models.ManyToManyField(
+        User, related_name="starred_projects", blank=True
+    )
     
     # Relasi Many-to-Many ke TechStack
     tech_stacks = models.ManyToManyField(

@@ -12,6 +12,8 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.shortcuts import redirect, render
 import datetime
+from django.contrib.auth.decorators import login_required  # Tambahkan baris ini
+from django.core.exceptions import PermissionDenied        # Tambahkan baris ini
 
 def show_main(request):
     last_login = request.COOKIES.get('last_login', 'Belum ada sesi login / Cookie tidak ditemukan')
@@ -80,7 +82,9 @@ def login_user(request):
 
 def logout_user(request):
     logout(request)
-    return redirect("main:show_main")
+    response = redirect("main:show_main")
+    response.delete_cookie("last_logout")
+    return response
 
 
 
@@ -119,7 +123,12 @@ def show_experience(request):
     }
     return render(request, "experience.html", context)
 
+@login_required(login_url="/login/")
 def delete_project(request, project_id):
+    
+    if not request.user.is_superuser:
+        raise PermissionDenied
+    
     project = get_object_or_404(Project, pk=project_id)
     if request.method == "POST":
         project.delete()
@@ -149,8 +158,12 @@ def show_projects(request):
     }
     return render(request, "projects.html", context)
 
-
+@login_required(login_url="/login/")
 def create_project(request):
+    
+    if not request.user.is_superuser:
+        raise PermissionDenied
+    
     form = ProjectForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -186,3 +199,16 @@ def get_projects_json(request):
 
     projects_json = serializers.serialize("json", projects)
     return HttpResponse(projects_json, content_type="application/json")
+
+@login_required(login_url="/login/")
+def toggle_star(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+
+    if request.method == "POST":
+        
+        if request.user in project.starred_by.all():
+            project.starred_by.remove(request.user)
+        else:
+            project.starred_by.add(request.user)
+
+    return redirect("main:show_projects")
