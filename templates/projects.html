@@ -11,7 +11,7 @@
 
             <div class="project-header">
                 <h1 class="projects-page-title">Selected Projects</h1>
-                {% if user.is_superuser %} 
+                {% if can_create %} 
                     <a href="{% url 'main:create_project' %}"
                     class="button project-add-button">
                         <span aria-hidden="true">+</span>
@@ -54,11 +54,13 @@
                                     {% if project.project_url %}
                                         <a href="{{ project.project_url }}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>
                                     {% endif %}
+                                    {% if can_edit %}
                                     <a href="{% url 'main:update_project' project.id %}" class="project-dark-link">EDIT &#9998;</a>
+                                    {% endif %}
                                 </div>
                                 <div class="project-actions">
                                     {% include "components/project_star.html" with project=project %}
-                                    {% if user.is_superuser %}  {# Tambahkan baris ini #}
+                                    {% if can_delete %}
                                         {% include "components/project_delete_modal.html" with project=project %}
                                     {% endif %}
                                 </div>
