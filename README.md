@@ -124,23 +124,14 @@ AI tidak saya pakai buat ngehasilin seluruh aplikasi dari nol. Implementasi utam
 
 Untuk tugas 3 ini saya sebenarnya tidak terlalu bergantung AI karena setelah tutorial 3, banyak checkbox di tugas 3 sudah kelar jadi saya cuman finishing seperti update yg gaada di tutorial 3.
 
-- Bantu aku menjawab pertanyaan ini dan jelaskan secara detail(pertanyaan reflektif)
-- Gimana cara nampilin json dari model ke html.
+Menanyakan cara memasukkan user ke dalam salah satu group di Django.
+Menanyakan cara menerapkan pembatasan hak akses di sisi server (server-side check) sesuai 4 peran/role (mengalihkan ke login jika belum masuk, serta mengembalikan HTTP 403 Forbidden untuk aksi yang dilarang).
 
-### Bagian yang Dibantu AI vs Sendiri
+Menanyakan kebenaran dari potongan kode pengecekan kondisi: if not request.user.is_superuser or request.user.is_editor: raise PermissionDenied
 
-**Dibantu AI (debugging CSS):**
+Verifikasi Sintaks Django Template ({% if %}): {% if user.is_superuser or request.user.groups.filter(name='editor').exists() %}
 
-- Debuggin frontend
-- Rapihin Readme.md
-- Bantu jawab pertanyaan reflektif
 
-**Dikerjain sendiri: Tugas 3**
-
-- CRUD(update,delete)
-- MVT Tugas 3
-
-- S
 
 ### Refleksi
 
