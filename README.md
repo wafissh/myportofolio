@@ -122,7 +122,7 @@ AI tidak saya pakai buat ngehasilin seluruh aplikasi dari nol. Implementasi utam
 
 ### Strategi Prompting
 
-Untuk tugas 3 ini saya sebenarnya tidak terlalu bergantung AI karena setelah tutorial 3, banyak checkbox di tugas 3 sudah kelar jadi saya cuman finishing seperti update yg gaada di tutorial 3.
+Untuk tugas 4 ini saya sebenarnya tidak terlalu bergantung AI karena setelah tutorial 4, banyak checkbox di tugas 4 sudah kelar jadi saya cuman finishing seperti update yg gaada di tutorial 4.
 
 Menanyakan cara memasukkan user ke dalam salah satu group di Django.
 Menanyakan cara menerapkan pembatasan hak akses di sisi server (server-side check) sesuai 4 peran/role (mengalihkan ke login jika belum masuk, serta mengembalikan HTTP 403 Forbidden untuk aksi yang dilarang).
@@ -133,85 +133,3 @@ Verifikasi Sintaks Django Template ({% if %}): {% if user.is_superuser or reques
 
 
 
-### Refleksi
-
-AI itu berguna banget buat debugging CSS karena kadang saya perlu coba-coba beberapa konsep (positioning, stacking context, document flow) dan AI bisa kasih alternatif pendekatan lebih cepat dari saya googling satu-satu.
-
-Tapi yang saya pelajari, jawaban AI ga selalu bisa langsung dipake. Kadang jawabannya bener secara teknis tapi ga cocok buat konteks proyek saya. Jadi saya tetep harus paham konsep dasarnya dulu biar bisa evaluasi jawaban AI dan tau mana yang bisa dipake mana yang ga cocok.
-
-Intinya AI itu tool yang membantu saya lebih efisien, tapi keputusan akhir dan implementasi tetep di tangan saya, AI juga membantu saya untuk hal hal yang saya kurang pahami ibarat menjadi sebuah search engine.
-
----
-
-## Pertanyaan Reflektif
-
-### 1. Kenapa Menggunakan ModelForm Alih-alih Form HTML Manual?
-
-ModelForm pada Django adalah class yang secara otomatis membuat form HTML berdasarkan field-field yang ada di model Django. Ada beberapa alasan kenapa ModelForm lebih baik daripada nulis form HTML manual:
-
-**Otomatisasi dan DRY (Don't Repeat Yourself).** Dengan ModelForm, saya cukup definisikan model di `models.py` dan ModelForm akan otomatis generate field, input type, label, dan validasi sesuai definisi model. Kalau pakai form manual, saya harus nulis ulang semua info itu di HTML — redundan dan rawan inconsistensi. Misalnya, kalau model punya field `CharField(max_length=100)`, ModelForm otomatis nambahin atribut `maxlength="100"` di input HTML-nya.
-
-**Validasi bawaan.** ModelForm mewarisi validasi dari field-field model Django — `max_length`, `unique`, `blank`, `null`, `choices`, dan custom `clean_*` methods. Jadi saya ga perlu nulis validasi ulang di form. Kalau form manual, semua validasi harus ditulis sendiri, baik di sisi client (JavaScript) maupun server (view).
-
-**Keamanan.** ModelForm secara otomatis handle sanitasi input dan mencegah SQL injection karena berinteraksi lewat ORM, bukan query mentah.
-
-**Maintainability.** Kalau saya mau nambah atau ubah field di model, saya cuma perlu update model dan ModelForm akan menyesuaikan otomatis. Form manual harus diupdate di dua tempat (model dan HTML) secara terpisah.
-
-`{% csrf_token %}` adalah Django template tag yang menghasilkan input tersembunyi berisi token keamanan CSRF (Cross-Site Request Forgery). Kenapa ini wajib?
-
-**Apa itu CSRF?** CSRF adalah serangan di mana situs jahat memanfaatkan session cookie yang tersimpan di browser pengguna. Misalnya, pengguna login di bank.com, lalu mengunjungi situs jahat yang secara diam-diam mengirim request ke bank.com dengan endpoint transfer uang. Karena browser otomatis lampirkan session cookie, bank.com mengira request itu legitimate.
-
-**Cara kerja CSRF token.** Django menyimpan token rahasia di session pengguna, lalu mengirimkan token yang sama ke template via `{% csrf_token %}`. Saat form disubmit, token dikirim balik ke server. Django membandingkan token dari form dengan token di session. Kalau cocok, request diterima. Kalau ga cocok atau ga ada, request ditolak (403 Forbidden). Karena token ini unik per session dan tidak bisa diprediksi, situs jahat tidak bisa memalsukannya.
-
-**Kenapa di-Django wajibkan?** Django menerapkan defense-in-depth. Bahkan kalau ada mekanisme keamanan lain, CSRF tetap menjadi lapisan proteksi tambahan yang krusial untuk semua POST/PUT/DELETE request.
-
-### 2. Kenapa JSON Lebih Disukai dibanding XML dalam Pengembangan Web Modern?
-
-**Ukuran dan efisiensi.** JSON lebih ringkas. Sebuah data yang diwakili dalam JSON biasanya jauh lebih kecil ukurannya dibanding XML. Misalnya, `{"name": "Hafiz"}` vs `<name>Hafiz</name>`. Tanpa closing tags dan tanpa atribut-atribut tambahan, JSON menghemat bandwidth dan mempercepat transfer data.
-
-**Struktur data lebih fleksibel.** JSON mendukung array, object, nested object, null, boolean, dan number secara native. XML harus mensimulasikan array dengan repeated tags atau atribut khusus.
-
-### 3. Alur Mengembalikan Data Portofolio dalam Bentuk JSON dan Peran Serialization
-
-**Alur yang terjadi saat view mengembalikan JSON:**
-
-1. **Request masuk.** Pengguna atau client (bisa browser, mobile app, atau API consumer) mengirim HTTP request ke endpoint tertentu, misalnya `/api/projects/`.
-
-2. **URL routing.** Django URLconf menangkap request dan mencocokkan pattern. Jika ada `path("api/projects/", get_projects_json)`, maka fungsi view `get_projects_json` dipanggil.
-
-3. **Query database.** Di dalam view, Django ORM mengeksekusi query ke database:
-
-   ```python
-   projects = Project.objects.all()
-   ```
-
-   ORM menerjemahkan ini menjadi SQL: `SELECT * FROM main_project`.
-
-4. **Serialization.** Data queryset berupa objek-objek Python (Python objects) tidak bisa langsung diubah menjadi JSON. Objek Python memiliki atribut yang kompleks — field model, methods, relasi, datetime objects — yang tidak bisa di-serialize secara langsung. Di sinilah serializer berperan:
-
-   ```python
-   from django.http import JsonResponse
-   from django.core.serializers import serialize
-
-   data = serialize("json", projects)
-   ```
-
-   Atau dengan serializer manual:
-
-   ```python
-   projects_data = list(projects.values("title", "slug", "description", "role", "is_featured"))
-   return JsonResponse({"projects": projects_data})
-   ```
-
-   Serializer mengubah objek-objek Python menjadi struktur data yang bisa di-convert ke JSON (list, dict, string, number, boolean, null).
-
-5. **Response.** `JsonResponse` membungkus data dalam format JSON dengan header `Content-Type: application/json` dan mengirimkannya kembali ke client.
-
-6. **Client menerima.** Client mem-parsing JSON response dan mengolahnya — misalnya menampilkan di UI, memproses di mobile app, atau menampilkan di dashboard.
-
-**Mengapa serialization diperlukan?**
-
-- **Objek Python bukan JSON.** Objek model Django punya method, property, dan referensi ORM yang tidak bisa dikonversi langsung ke JSON. Serializer "memecah" objek menjadi kumpulan key-value pairs yang JSON-compatible.
-- **Keamanan.** Serialization memungkinkan kita mengontrol field mana yang boleh diekspos. Tidak semua field model harus dikirim ke client (misalnya field `is_admin` atau `password`). Serializer menjadi filter antara data internal dan data publik.
-- **Menghindari circular reference.** Model Django bisa punya relasi ForeignKey atau ManyToMany yang saling merujuk. Tanpa serializer yang proper, konversi langsung ke JSON akan error karena circular reference.
-- **Standarisasi.** Serializer memastikan format output konsisten dan terprediksi, sehingga client selalu menerima data dengan struktur yang sama.
