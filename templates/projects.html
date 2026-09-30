@@ -104,6 +104,16 @@
         gridContainer.classList.toggle('hide', !showGrid);
     }
 
+    // Mengubah karakter khusus HTML menjadi entity agar ditampilkan sebagai teks
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
     function buildProjectCardElement(item) {
         const project = item.fields;
         const projectId = item.pk;
@@ -115,13 +125,13 @@
         const starUrl = STAR_URL_TEMPLATE.replace('/0/', `/${projectId}/`);
 
         const roleHtml = project.role
-            ? `<p class="project-dark-role">${project.role}</p>`
+            ? `<p class="project-dark-role">${escapeHtml(project.role)}</p>`
             : '';
         const techHtml = project.tech_stacks.length
-            ? `<div class="project-dark-tech">${project.tech_stacks.map(name => `<span class="pill-dark">${name}</span>`).join('')}</div>`
+            ? `<div class="project-dark-tech">${project.tech_stacks.map(name => `<span class="pill-dark">${escapeHtml(name)}</span>`).join('')}</div>`
             : '';
         const visitHtml = project.project_url
-            ? `<a href="${project.project_url}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>`
+            ? `<a href="${escapeHtml(project.project_url)}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>`
             : '';
         const editHtml = CAN_EDIT
             ? `<a href="${editUrl}" class="project-dark-link">EDIT &#9998;</a>`
@@ -136,17 +146,17 @@
         const isStarredClass = project.is_starred ? ' is-starred' : '';
         const starText = project.is_starred ? 'Unstar' : 'Star';
         const starTitle = project.star_count > 0
-            ? `Dibintangi oleh ${project.starred_by_names}`
+            ? `Dibintangi oleh ${escapeHtml(project.starred_by_names)}`
             : 'Jadilah yang pertama memberi star';
 
         const completeCardHtml = `
             <div class="project-dark-image">
-                <img src="${project.thumbnail_url}" alt="${project.title}">
+                <img src="${escapeHtml(project.thumbnail_url)}" alt="${escapeHtml(project.title)}">
             </div>
             <div class="project-dark-info">
-                <h3>${project.title}</h3>
+                <h3>${escapeHtml(project.title)}</h3>
                 ${roleHtml}
-                <p class="project-dark-desc">${project.description}</p>
+                <p class="project-dark-desc">${escapeHtml(project.description)}</p>
                 ${techHtml}
                 <div class="project-dark-footer">
                     ${visitHtml}

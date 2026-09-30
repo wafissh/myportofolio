@@ -1,4 +1,6 @@
+from django.core.exceptions import ValidationError
 from django.forms import ModelForm, TextInput, Textarea, URLInput, CheckboxInput, SelectMultiple
+from django.utils.html import strip_tags
 from main.models import Project
 
 
@@ -67,3 +69,18 @@ class ProjectForm(ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["thumbnail"].required = False
         self.fields["project_url"].required = False
+
+    def clean_title(self):
+        title = strip_tags(self.cleaned_data["title"]).strip()
+        if not title:
+            raise ValidationError("Nama proyek tidak boleh hanya berisi tag HTML.")
+        return title
+
+    def clean_role(self):
+        return strip_tags(self.cleaned_data["role"]).strip()
+
+    def clean_description(self):
+        description = strip_tags(self.cleaned_data["description"]).strip()
+        if not description:
+            raise ValidationError("Deskripsi proyek tidak boleh hanya berisi tag HTML.")
+        return description

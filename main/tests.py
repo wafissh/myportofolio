@@ -375,6 +375,54 @@ class CreateProjectAjaxTest(TestCase):
         self.assertEqual(self.client.get(self.url).status_code, 405)
 
 
+class XssProtectionTest(TestCase):
+    def setUp(self):
+        self.url = reverse("main:create_project_ajax")
+        self.admin = User.objects.create_superuser("admin", password="adminpass123")
+        self.client.force_login(self.admin)
+
+    def test_title_with_only_html_tag_is_rejected(self):
+        payload = {
+            "title": '<img src="x" onerror="alert(1)">',
+            "slug": "xss-title",
+            "description": "Deskripsi uji.",
+        }
+        response = self.client.post(self.url, payload)
+
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.content)
+        self.assertIn("title", data["errors"])
+        self.assertFalse(Project.objects.filter(slug="xss-title").exists())
+
+    def test_description_with_only_html_tag_is_rejected(self):
+        payload = {
+            "title": "Proyek Uji",
+            "slug": "xss-desc",
+            "description": '<img src="x" onerror="alert(1)">',
+        }
+        response = self.client.post(self.url, payload)
+
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.content)
+        self.assertIn("description", data["errors"])
+        self.assertFalse(Project.objects.filter(slug="xss-desc").exists())
+
+    def test_html_tags_are_stripped_from_text_fields(self):
+        payload = {
+            "title": "Halo <b>Dunia</b>",
+            "slug": "halo-dunia",
+            "role": "Frontend <script>alert(1)</script> Developer",
+            "description": "Deskripsi <i>mantap</i> sekali.",
+        }
+        response = self.client.post(self.url, payload)
+
+        self.assertEqual(response.status_code, 201)
+        project = Project.objects.get(slug="halo-dunia")
+        self.assertEqual(project.title, "Halo Dunia")
+        self.assertEqual(project.role, "Frontend alert(1) Developer")
+        self.assertEqual(project.description, "Deskripsi mantap sekali.")
+
+
 class NonexistentPageTest(TestCase):
     def test_returns_404(self):
         response = self.client.get("/halaman-yang-tidak-ada/")
