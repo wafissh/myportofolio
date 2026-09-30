@@ -324,6 +324,57 @@ class ProjectApiTest(TestCase):
         self.assertEqual(data[0]["fields"]["title"], "Django REST API")
 
 
+class CreateProjectAjaxTest(TestCase):
+    def setUp(self):
+        self.url = reverse("main:create_project_ajax")
+        self.admin = User.objects.create_superuser("admin", password="adminpass123")
+        self.member = User.objects.create_user("member", password="memberpass123")
+        self.valid_data = {
+            "title": "Proyek AJAX",
+            "slug": "proyek-ajax",
+            "role": "Developer",
+            "description": "Deskripsi proyek AJAX.",
+            "thumbnail": "https://example.com/thumb.png",
+            "project_url": "https://example.com",
+        }
+
+    def test_anonymous_gets_403_json(self):
+        response = self.client.post(self.url, self.valid_data)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertFalse(Project.objects.exists())
+
+    def test_member_gets_403_json(self):
+        self.client.force_login(self.member)
+        response = self.client.post(self.url, self.valid_data)
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Project.objects.exists())
+
+    def test_superuser_can_create_project(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(self.url, self.valid_data)
+
+        self.assertEqual(response.status_code, 201)
+        data = json.loads(response.content)
+        self.assertIn("message", data)
+        self.assertTrue(Project.objects.filter(pk=data["pk"]).exists())
+        self.assertEqual(Project.objects.get().title, "Proyek AJAX")
+
+    def test_invalid_data_returns_400_with_errors(self):
+        self.client.force_login(self.admin)
+        invalid_data = {**self.valid_data, "title": "   "}
+        response = self.client.post(self.url, invalid_data)
+
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.content)
+        self.assertIn("title", data["errors"])
+        self.assertFalse(Project.objects.exists())
+
+    def test_get_not_allowed(self):
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+
 class NonexistentPageTest(TestCase):
     def test_returns_404(self):
         response = self.client.get("/halaman-yang-tidak-ada/")
