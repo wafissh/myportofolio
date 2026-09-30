@@ -25,6 +25,10 @@
   --birumuda: #0e0f21;
 }
 
+.hide {
+  display: none !important;
+}
+
 body {
   font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--ink);

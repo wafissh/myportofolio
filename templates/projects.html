@@ -11,17 +11,18 @@
 
             <div class="project-header">
                 <h1 class="projects-page-title">Selected Projects</h1>
-                {% if can_create %} 
+                {% if can_create %}
                     <a href="{% url 'main:create_project' %}"
                     class="button project-add-button">
                         <span aria-hidden="true">+</span>
                         Tambah Proyek
                     </a>
-                {% endif %}                 
+                {% endif %}
             </div>
 
-            <form method="get" action="{% url 'main:show_projects' %}" class="project-search">
+            <form id="project-search-form" class="project-search">
                 <input type="search"
+                       id="search-input"
                        name="title"
                        value="{{ title_query }}"
                        placeholder="Cari berdasarkan nama proyek"
@@ -30,72 +31,251 @@
                 <button type="submit" class="button">Cari</button>
             </form>
 
-            {% if project_list %}
-                <div class="projects-dark-grid">
-                    {% for project in project_list %}
-                        <article class="project-dark-card">
-                            <div class="project-dark-image">
-                                <img src="{{ project.get_thumbnail_url }}" alt="{{ project.title }}">
-                            </div>
-                            <div class="project-dark-info">
-                                <h3>{{ project.title }}</h3>
-                                {% if project.role %}
-                                    <p class="project-dark-role">{{ project.role }}</p>
-                                {% endif %}
-                                <p class="project-dark-desc">{{ project.description }}</p>
-                                {% if project.tech_stacks.all %}
-                                    <div class="project-dark-tech">
-                                        {% for tech in project.tech_stacks.all %}
-                                            <span class="pill-dark">{{ tech.name }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                <div class="project-dark-footer">
-                                    {% if project.project_url %}
-                                        <a href="{{ project.project_url }}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>
-                                    {% endif %}
-                                    {% if can_edit %}
-                                    <a href="{% url 'main:update_project' project.id %}" class="project-dark-link">EDIT &#9998;</a>
-                                    {% endif %}
-                                </div>
-                                <div class="project-actions">
-                                    {% include "components/project_star.html" with project=project %}
-                                    {% if can_delete %}
-                                        {% include "components/project_delete_modal.html" with project=project %}
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </article>
-                    {% endfor %}
-                </div>
+            <!-- Loading State -->
+            <div id="loading" class="empty-experience-state">
+                <p class="empty-experience-text">Memuat projects...</p>
+            </div>
+            <!-- Error State -->
+            <div id="error" class="empty-experience-state hide">
+                <p class="empty-experience-text">Gagal memuat data projects. Silakan coba lagi.</p>
+            </div>
+            <!-- Empty State -->
+            <div id="empty" class="empty-experience-state hide">
+                <p id="empty-text" class="empty-experience-text">Belum ada proyek yang ditambahkan.</p>
+            </div>
+            <!-- Project Grid -->
+            <div id="grid" class="projects-dark-grid hide"></div>
 
+            <div id="pagination" class="pagination {% if not project_list.has_other_pages %}hide{% endif %}">
                 {% if project_list.has_other_pages %}
-                    <div class="pagination">
-                        {% if project_list.has_previous %}
-                            <a href="?page={{ project_list.previous_page_number }}{% if title_query %}&title={{ title_query }}{% endif %}" class="page-btn">&#8592; Prev</a>
-                        {% endif %}
-                        {% for num in project_list.paginator.page_range %}
-                            {% if project_list.number == num %}
-                                <span class="page-btn active">{{ num }}</span>
-                            {% elif num > project_list.number|add:'-3' and num < project_list.number|add:'3' %}
-                                <a href="?page={{ num }}{% if title_query %}&title={{ title_query }}{% endif %}" class="page-btn">{{ num }}</a>
-                            {% endif %}
-                        {% endfor %}
-                        {% if project_list.has_next %}
-                            <a href="?page={{ project_list.next_page_number }}{% if title_query %}&title={{ title_query }}{% endif %}" class="page-btn">Next &#8594;</a>
-                        {% endif %}
-                    </div>
-                {% endif %}
-            {% else %}
-                <div class="empty-experience-state">
-                    {% if title_query %}
-                        <p class="empty-experience-text">Tidak ada proyek dengan nama tersebut.</p>
-                    {% else %}
-                        <p class="empty-experience-text">Belum ada proyek yang ditambahkan.</p>
+                    {% if project_list.has_previous %}
+                        <a href="?page={{ project_list.previous_page_number }}{% if title_query %}&title={{ title_query }}{% endif %}" class="page-btn" data-page="{{ project_list.previous_page_number }}">&#8592; Prev</a>
                     {% endif %}
-                </div>
-            {% endif %}
+                    {% for num in project_list.paginator.page_range %}
+                        {% if project_list.number == num %}
+                            <span class="page-btn active">{{ num }}</span>
+                        {% elif num > project_list.number|add:'-3' and num < project_list.number|add:'3' %}
+                            <a href="?page={{ num }}{% if title_query %}&title={{ title_query }}{% endif %}" class="page-btn" data-page="{{ num }}">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if project_list.has_next %}
+                        <a href="?page={{ project_list.next_page_number }}{% if title_query %}&title={{ title_query }}{% endif %}" class="page-btn" data-page="{{ project_list.next_page_number }}">Next &#8594;</a>
+                    {% endif %}
+                {% endif %}
+            </div>
         </div>
     </section>
 </main>
+
+<script>
+    // Konfigurasi
+    const BASE_PROJECTS_ENDPOINT = "{% url 'get_projects_json' %}";
+    const EDIT_URL_TEMPLATE = "{% url 'main:update_project' 0 %}";
+    const DELETE_URL_TEMPLATE = "{% url 'main:delete_project' 0 %}";
+    const STAR_URL_TEMPLATE = "{% url 'main:toggle_star' 0 %}";
+    const CAN_EDIT = "{{ can_edit|yesno:'true,false' }}" === "true";
+    const CAN_DELETE = "{{ can_delete|yesno:'true,false' }}" === "true";
+    const SEARCH_DEBOUNCE_DELAY = 300;
+    let projectsAbortController;
+    let searchDebounceTimer;
+
+    // Elemen DOM
+    const loadingState = document.getElementById('loading');
+    const errorState = document.getElementById('error');
+    const emptyState = document.getElementById('empty');
+    const emptyText = document.getElementById('empty-text');
+    const gridContainer = document.getElementById('grid');
+    const paginationContainer = document.getElementById('pagination');
+    const searchForm = document.getElementById('project-search-form');
+    const searchInput = document.getElementById('search-input');
+    let currentPage = Number(new URLSearchParams(window.location.search).get('page')) || 1;
+
+    // Menyembunyikan/Menampilkan section halaman
+    function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showGrid = false }) {
+        loadingState.classList.toggle('hide', !showLoading);
+        errorState.classList.toggle('hide', !showError);
+        emptyState.classList.toggle('hide', !showEmpty);
+        gridContainer.classList.toggle('hide', !showGrid);
+    }
+
+    function buildProjectCardElement(item) {
+        const project = item.fields;
+        const projectId = item.pk;
+        const articleElement = document.createElement('article');
+        articleElement.className = 'project-dark-card';
+
+        const editUrl = EDIT_URL_TEMPLATE.replace('/0/', `/${projectId}/`);
+        const deleteUrl = DELETE_URL_TEMPLATE.replace('/0/', `/${projectId}/`);
+        const starUrl = STAR_URL_TEMPLATE.replace('/0/', `/${projectId}/`);
+
+        const roleHtml = project.role
+            ? `<p class="project-dark-role">${project.role}</p>`
+            : '';
+        const techHtml = project.tech_stacks.length
+            ? `<div class="project-dark-tech">${project.tech_stacks.map(name => `<span class="pill-dark">${name}</span>`).join('')}</div>`
+            : '';
+        const visitHtml = project.project_url
+            ? `<a href="${project.project_url}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>`
+            : '';
+        const editHtml = CAN_EDIT
+            ? `<a href="${editUrl}" class="project-dark-link">EDIT &#9998;</a>`
+            : '';
+        const deleteHtml = CAN_DELETE
+            ? `<form method="post" action="${deleteUrl}">
+                    {% csrf_token %}
+                    <button type="submit" class="button button-danger" onclick="return confirm('Yakin ingin menghapus project ini?');">Hapus Proyek</button>
+                </form>`
+            : '';
+
+        const isStarredClass = project.is_starred ? ' is-starred' : '';
+        const starText = project.is_starred ? 'Unstar' : 'Star';
+        const starTitle = project.star_count > 0
+            ? `Dibintangi oleh ${project.starred_by_names}`
+            : 'Jadilah yang pertama memberi star';
+
+        const completeCardHtml = `
+            <div class="project-dark-image">
+                <img src="${project.thumbnail_url}" alt="${project.title}">
+            </div>
+            <div class="project-dark-info">
+                <h3>${project.title}</h3>
+                ${roleHtml}
+                <p class="project-dark-desc">${project.description}</p>
+                ${techHtml}
+                <div class="project-dark-footer">
+                    ${visitHtml}
+                    ${editHtml}
+                </div>
+                <div class="project-actions">
+                    <form method="post" action="${starUrl}" class="star-form">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="button button-star${isStarredClass}"
+                                title="${starTitle}">
+                            <span aria-hidden="true">&#9733;</span>
+                            ${starText}
+                            <span class="star-count">${project.star_count}</span>
+                        </button>
+                    </form>
+                    ${deleteHtml}
+                </div>
+            </div>
+        `;
+        articleElement.innerHTML = completeCardHtml;
+        return articleElement;
+    }
+
+    function pageHref(pageNumber, searchQuery) {
+        let href = `?page=${pageNumber}`;
+        if (searchQuery) href += `&title=${encodeURIComponent(searchQuery)}`;
+        return href;
+    }
+
+    function renderPagination(pageNumber, totalPages, searchQuery) {
+        if (totalPages <= 1) {
+            paginationContainer.classList.add('hide');
+            paginationContainer.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        if (pageNumber > 1) {
+            html += `<a href="${pageHref(pageNumber - 1, searchQuery)}" class="page-btn" data-page="${pageNumber - 1}">&#8592; Prev</a>`;
+        }
+        for (let num = 1; num <= totalPages; num++) {
+            if (num === pageNumber) {
+                html += `<span class="page-btn active">${num}</span>`;
+            } else if (num > pageNumber - 3 && num < pageNumber + 3) {
+                html += `<a href="${pageHref(num, searchQuery)}" class="page-btn" data-page="${num}">${num}</a>`;
+            }
+        }
+        if (pageNumber < totalPages) {
+            html += `<a href="${pageHref(pageNumber + 1, searchQuery)}" class="page-btn" data-page="${pageNumber + 1}">Next &#8594;</a>`;
+        }
+        paginationContainer.innerHTML = html;
+        paginationContainer.classList.remove('hide');
+    }
+
+    function updateUrl(searchQuery, page) {
+        const params = new URLSearchParams();
+        if (searchQuery) params.set('title', searchQuery);
+        if (page > 1) params.set('page', String(page));
+        const queryString = params.toString();
+        history.replaceState(null, '', queryString ? `?${queryString}` : window.location.pathname);
+    }
+
+    // Fetch data project
+    async function fetchProjects(searchQuery = '', page = 1) {
+        if (projectsAbortController) projectsAbortController.abort();
+        projectsAbortController = new AbortController();
+
+        try {
+            displayPageSection({ showLoading: true });
+
+            const params = new URLSearchParams();
+            if (searchQuery) params.set('title', searchQuery);
+            if (page > 1) params.set('page', String(page));
+            const queryString = params.toString();
+            const url = queryString ? `${BASE_PROJECTS_ENDPOINT}?${queryString}` : BASE_PROJECTS_ENDPOINT;
+
+            const response = await fetch(url, {
+                headers: { 'Accept': 'application/json' },
+                signal: projectsAbortController.signal,
+            });
+            if (!response.ok) throw new Error('Failed to fetch data');
+
+            const projectData = await response.json();
+            const totalPages = Number(response.headers.get('X-Total-Pages')) || 1;
+            currentPage = Number(response.headers.get('X-Current-Page')) || page || 1;
+            updateUrl(searchQuery, currentPage);
+            renderPagination(currentPage, totalPages, searchQuery);
+
+            if (projectData.length === 0) {
+                emptyText.textContent = searchQuery
+                    ? 'Tidak ada proyek dengan nama tersebut.'
+                    : 'Belum ada proyek yang ditambahkan.';
+                displayPageSection({ showEmpty: true });
+            } else {
+                gridContainer.innerHTML = '';
+                projectData.forEach(item => {
+                    gridContainer.appendChild(buildProjectCardElement(item));
+                });
+                displayPageSection({ showGrid: true });
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error('Error loading projects:', error);
+            displayPageSection({ showError: true });
+        }
+    }
+
+    function searchProjects() {
+        fetchProjects(searchInput.value.trim(), 1);
+    }
+
+    // Event Handlers untuk Form Search
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(searchProjects, SEARCH_DEBOUNCE_DELAY);
+    });
+
+    searchForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearTimeout(searchDebounceTimer);
+        searchProjects();
+    });
+
+    paginationContainer.addEventListener('click', function (event) {
+        const link = event.target.closest('a.page-btn');
+        if (!link) return;
+        event.preventDefault();
+        const targetPage = Number(link.dataset.page);
+        if (!Number.isNaN(targetPage)) {
+            fetchProjects(searchInput.value.trim(), targetPage);
+        }
+    });
+
+    // Start application
+    fetchProjects(searchInput.value.trim(), currentPage);
+</script>
 {% endblock content %}

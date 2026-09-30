@@ -3,10 +3,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.core.paginator import Paginator
 from collections import OrderedDict
-from django.http import HttpResponse
+from django.http import JsonResponse
 from main.models import Experience, Project, TechStack, Education
 from main.forms import ProjectForm
-from django.core import serializers
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
@@ -15,17 +14,6 @@ import datetime
 from django.contrib.auth.decorators import login_required  # Tambahkan baris ini
 from django.core.exceptions import PermissionDenied        # Tambahkan baris ini
 from django.views.decorators.http import require_POST
-
-PROJECT_JSON_FIELDS = (
-    "title",
-    "slug",
-    "role",
-    "description",
-    "thumbnail",
-    "project_url",
-    "is_featured",
-    "tech_stacks",
-)
 
 
 def can_create(user):
@@ -162,24 +150,20 @@ def delete_project(request, project_id):
 
 
 def show_projects(request):
-    json_response = get_projects_json(request)
+    title_query = request.GET.get("title", "").strip()
 
-    user_edit_permission = can_update(request.user)
-    projects = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    projects = [project.object for project in projects]
+    projects = Project.objects.order_by("-id")
+    if title_query:
+        projects = projects.filter(title__icontains=title_query)
 
     paginator = Paginator(projects, 6)
-    page = request.GET.get("page")
-    projects = paginator.get_page(page)
-    title_query = request.GET.get("title", "").strip()
+    project_list = paginator.get_page(request.GET.get("page") or 1)
+
     context = {
         "name": "Wien Muhammad Hafizhurrohman",
-        "project_list": projects,
+        "project_list": project_list,
         "title_query": title_query,
-        "can_edit": user_edit_permission,
+        "can_edit": can_update(request.user),
         "can_create": can_create(request.user),
         "can_delete": can_delete(request.user),
     }
@@ -222,14 +206,46 @@ def update_project(request, project_id):
 
 def get_projects_json(request):
     title_query = request.GET.get("title", "").strip()
-    projects = Project.objects.all()
+
+    projects = Project.objects.prefetch_related(
+        "starred_by", "tech_stacks"
+    ).order_by("-id")
     if title_query:
         projects = projects.filter(title__icontains=title_query)
 
-    projects_json = serializers.serialize(
-        "json", projects, fields=PROJECT_JSON_FIELDS
-    )
-    return HttpResponse(projects_json, content_type="application/json")
+    paginator = Paginator(projects, 6)
+    page_obj = paginator.get_page(request.GET.get("page") or 1)
+
+    # Konstruksi data JSON secara manual agar bisa menyisipkan logika Star
+    data = []
+    for project in page_obj.object_list:
+        starred_users = project.starred_by.all()
+        is_starred = (
+            request.user.is_authenticated and request.user in starred_users
+        )
+        data.append({
+            "pk": str(project.id),
+            "fields": {
+                "title": project.title,
+                "slug": project.slug,
+                "role": project.role,
+                "description": project.description,
+                "is_featured": project.is_featured,
+                "thumbnail_url": project.get_thumbnail_url,
+                "project_url": project.project_url or "",
+                "tech_stacks": [tech.name for tech in project.tech_stacks.all()],
+                "star_count": len(starred_users),
+                "is_starred": is_starred,
+                "starred_by_names": ", ".join(
+                    user.username for user in starred_users
+                ),
+            },
+        })
+
+    response = JsonResponse(data, safe=False)
+    response["X-Total-Pages"] = str(paginator.num_pages)
+    response["X-Current-Page"] = str(page_obj.number)
+    return response
 
 
 @login_required(login_url="/login/")

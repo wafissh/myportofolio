@@ -125,12 +125,20 @@ class ProjectsViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "projects.html")
 
-    def test_data_model_appears_in_html(self):
+    def test_data_model_appears_in_api(self):
+        response = self.client.get(reverse("get_projects_json"))
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        fields = data[0]["fields"]
+        self.assertEqual(fields["title"], self.project.title)
+        self.assertEqual(fields["description"], self.project.description)
+        self.assertEqual(fields["role"], self.project.role)
+
+    def test_page_contains_static_chrome(self):
         response = self.client.get(reverse("main:show_projects"))
-        self.assertContains(response, self.project.title)
-        self.assertContains(response, self.project.description)
-        self.assertContains(response, self.project.role)
         self.assertContains(response, "Back to Home")
+        self.assertContains(response, "Selected Projects")
+        self.assertContains(response, "project-search-form")
 
     def test_empty_state_when_no_data(self):
         Project.objects.all().delete()
@@ -191,11 +199,12 @@ class AuthorizationTest(TestCase):
         self.assertNotContains(response, self.create_url)
         self.assertNotContains(response, reverse("main:update_project", args=[self.project.pk]))
         self.assertNotContains(response, self.delete_url)
+        self.assertNotContains(response, 'CAN_EDIT = "true"')
 
         self.client.force_login(self.admin)
         response = self.client.get(reverse("main:show_projects"))
         self.assertContains(response, self.create_url)
-        self.assertContains(response, reverse("main:update_project", args=[self.project.pk]))
+        self.assertContains(response, 'CAN_EDIT = "true"')
 
 
 class StarTest(TestCase):
@@ -271,6 +280,38 @@ class ProjectApiTest(TestCase):
 
         for sensitive in ("password", "starred_by", "last_login", "email", "is_superuser"):
             self.assertNotIn(sensitive, fields)
+
+    def test_api_sends_pagination_headers(self):
+        response = self.client.get(reverse("get_projects_json"))
+        self.assertEqual(response["X-Total-Pages"], "1")
+        self.assertEqual(response["X-Current-Page"], "1")
+
+    def test_api_paginates_results(self):
+        for i in range(6):
+            Project.objects.create(
+                title=f"Proyek Tambahan {i}",
+                slug=f"proyek-tambahan-{i}",
+                description="Deskripsi singkat.",
+            )
+        page_one = self.client.get(reverse("get_projects_json"))
+        page_two = self.client.get(reverse("get_projects_json") + "?page=2")
+
+        self.assertEqual(len(json.loads(page_one.content)), 6)
+        self.assertEqual(len(json.loads(page_two.content)), 1)
+        self.assertEqual(page_one["X-Total-Pages"], "2")
+        self.assertEqual(page_two["X-Current-Page"], "2")
+
+    def test_api_filters_by_title(self):
+        Project.objects.create(
+            title="Django REST API",
+            slug="django-rest-api",
+            description="Proyek uji pencarian.",
+        )
+        response = self.client.get(reverse("get_projects_json") + "?title=django")
+        data = json.loads(response.content)
+
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["fields"]["title"], "Django REST API")
 
 
 class NonexistentPageTest(TestCase):
