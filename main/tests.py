@@ -206,6 +206,16 @@ class AuthorizationTest(TestCase):
         self.assertContains(response, self.create_url)
         self.assertContains(response, 'CAN_EDIT = "true"')
 
+    def test_add_project_modal_only_rendered_for_superuser(self):
+        response = self.client.get(reverse("main:show_projects"))
+        self.assertNotContains(response, 'id="add-project-modal"')
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("main:show_projects"))
+        self.assertContains(response, 'id="add-project-modal"')
+        self.assertContains(response, 'popovertarget="add-project-modal"')
+        self.assertContains(response, 'id="project-form"')
+
 
 class StarTest(TestCase):
     def setUp(self):

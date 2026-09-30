@@ -166,6 +166,7 @@ def show_projects(request):
         "can_edit": can_update(request.user),
         "can_create": can_create(request.user),
         "can_delete": can_delete(request.user),
+        "form": ProjectForm(),
     }
     return render(request, "projects.html", context)
 
