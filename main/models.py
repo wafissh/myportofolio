@@ -62,6 +62,7 @@ class TechStack(models.Model):
         return f"{self.name} ({self.get_category_display()})"
     
 class Project(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
     role = models.CharField(max_length=150, blank=True, help_text="Contoh: Frontend Developer & Deployment Specialist")

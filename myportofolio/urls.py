@@ -20,6 +20,7 @@ from main.views import get_projects_json
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("main.urls")),
-    path("api/projects/", get_projects_json, name="get_projects_json")
-
+    path("api/projects/", get_projects_json, name="get_projects_json"),
+    path("api/v1/", include("main.api_urls")),
+    path("api-auth/", include("rest_framework.urls")),
 ]

@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
@@ -17,16 +18,66 @@ from main.serializers import ProjectSerializer
 @permission_classes([IsPortfolioOwnerOrReadOnly])
 def project_list(request):
     if request.method in ("GET", "HEAD"):
-        projects = Project.objects.prefetch_related("starred_by").order_by("title", "id")
+        projects = Project.objects.prefetch_related(
+            "starred_by", "tech_stacks",
+        ).order_by("title", "id")
         title = request.query_params.get("title", "").strip()
         if title:
             projects = projects.filter(title__icontains=title)
+
+        paginator = Paginator(projects, 6)
+        page_obj = paginator.get_page(request.query_params.get("page") or 1)
         serializer = ProjectSerializer(
-            projects, many=True, context={"request": request},
+            page_obj.object_list, many=True, context={"request": request},
         )
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        response["X-Total-Pages"] = str(paginator.num_pages)
+        response["X-Current-Page"] = str(page_obj.number)
+        return response
 
     serializer = ProjectSerializer(data=request.data, context={"request": request})
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsPortfolioOwnerOrReadOnly])
+def project_detail(request, project_id):
+    project = get_object_or_404(
+        Project.objects.prefetch_related("starred_by", "tech_stacks"),
+        pk=project_id,
+    )
+
+    if request.method in ("GET", "HEAD"):
+        serializer = ProjectSerializer(project, context={"request": request})
+        return Response(serializer.data)
+
+    if request.method == "DELETE":
+        project.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = ProjectSerializer(
+        project, data=request.data, partial=request.method == "PATCH",
+        context={"request": request},
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def project_star(request, project_id):
+    project = get_object_or_404(
+        Project.objects.prefetch_related("starred_by", "tech_stacks"),
+        pk=project_id,
+    )
+    if project.starred_by.filter(pk=request.user.pk).exists():
+        project.starred_by.remove(request.user)
+    else:
+        project.starred_by.add(request.user)
+    serializer = ProjectSerializer(project, context={"request": request})
+    return Response(serializer.data)
