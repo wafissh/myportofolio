@@ -84,6 +84,16 @@ class Project(models.Model):
         return self.title
     
     @property
+    def star_count(self):
+        return self.starred_by.count()
+
+    @property
+    def is_starred(self):
+        request = self._request if hasattr(self, '_request') else None
+        if request is None or not request.user.is_authenticated:
+            return False
+        return request.user in self.starred_by.all()
+    @property
     def get_thumbnail_url(self):
         return self.thumbnail if self.thumbnail else "/static/img/test_only.png"
     

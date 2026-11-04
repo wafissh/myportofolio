@@ -1,6 +1,6 @@
 from django.urls import path
 from main.views import show_main, show_experience, show_technologies, show_projects, create_project, create_project_ajax, update_project, delete_project, register,login_user,logout_user, toggle_star
-
+from django.urls import include, path
 app_name = "main"
 
 urlpatterns = [
@@ -20,4 +20,9 @@ urlpatterns = [
         toggle_star,
         name="toggle_star",
     ),
+]
+
+urlpatterns += [
+    path("api/v1/", include("main.api_urls")),
+    path("api-auth/", include("rest_framework.urls")),
 ]
