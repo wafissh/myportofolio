@@ -85,6 +85,7 @@ class ProjectAPITest(APITestCase):
         for changes, field in [
             ({"title": " "}, "title"),
             ({"title": '<img src="x" onerror="alert(1)">'}, "title"),
+            ({"description": '<img src="x" onerror="alert(1)">'}, "description"),
             ({"project_url": "javascript:alert(1)"}, "project_url"),
         ]:
             response = self.client.post(
@@ -144,15 +145,40 @@ class ProjectAPITest(APITestCase):
         self.assertEqual(response.data["starred_by_names"], "")
         self.assertEqual(response.data["tech_stack_names"], ["Django"])
 
-    def test_staff_and_editor_cannot_manage_tutorial_projects(self):
-        self.visitor.is_staff = True
-        self.visitor.save()
-        self.visitor.groups.add(Group.objects.create(name="Editor"))
-        self.client.force_authenticate(user=self.visitor)
-        response = self.client.patch(
-            self.detail_url, {"title": "Changed"}, format="json",
+    def test_editor_can_patch_but_cannot_create_or_delete(self):
+        editor = User.objects.create_user(
+            username="editor", password="test-password",
         )
+        editor.groups.add(Group.objects.create(name="Editor"))
+        self.client.force_authenticate(user=editor)
+
+        response = self.client.patch(
+            self.detail_url, {"description": "Edited by editor"}, format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.description, "Edited by editor")
+
+        response = self.client.post(self.list_url, self.payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Project.objects.count(), 1)
+
+        response = self.client.delete(self.detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Project.objects.filter(pk=self.project.pk).exists())
+
+    def test_editor_can_put_full_update(self):
+        editor = User.objects.create_user(
+            username="editor", password="test-password",
+        )
+        editor.groups.add(Group.objects.create(name="Editor"))
+        self.client.force_authenticate(user=editor)
+
+        response = self.client.put(self.detail_url, self.payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.title, self.payload["title"])
+        self.assertEqual(self.project.slug, self.payload["slug"])
 
     def test_wrong_method(self):
         self.client.force_authenticate(user=self.owner)

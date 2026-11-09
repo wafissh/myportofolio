@@ -14,6 +14,7 @@
                 {% if can_create %}
                     <button type="button"
                             class="button project-add-button"
+                            data-project-add
                             popovertarget="add-project-modal">
                         <span aria-hidden="true">+</span>
                         Tambah Proyek
@@ -68,7 +69,7 @@
     </section>
 </main>
 
-{% if can_create %}
+{% if can_create or can_edit %}
     {% include "components/project_form_modal.html" %}
 {% endif %}
 
@@ -79,7 +80,6 @@
     const BASE_PROJECTS_ENDPOINT = "{% url 'api:project-list' %}";
     const DETAIL_PROJECT_ENDPOINT = "{% url 'api:project-detail' '00000000-0000-0000-0000-000000000000' %}";
     const STAR_PROJECT_ENDPOINT = "{% url 'api:project-star' '00000000-0000-0000-0000-000000000000' %}";
-    const EDIT_URL_TEMPLATE = "{% url 'main:update_project' '00000000-0000-0000-0000-000000000000' %}";
     const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
     const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
     const CAN_EDIT = "{{ can_edit|yesno:'true,false' }}" === "true";
@@ -87,6 +87,8 @@
     const SEARCH_DEBOUNCE_DELAY = 300;
     let projectsAbortController;
     let searchDebounceTimer;
+    let latestProjects = new Map();
+    let editingProjectId = null;
 
     // Elemen DOM
     const loadingState = document.getElementById('loading');
@@ -132,8 +134,6 @@
         const articleElement = document.createElement('article');
         articleElement.className = 'project-dark-card';
 
-        const editUrl = EDIT_URL_TEMPLATE.replace(ZERO_UUID, project.id);
-
         const roleHtml = project.role
             ? `<p class="project-dark-role">${escapeHtml(project.role)}</p>`
             : '';
@@ -144,7 +144,8 @@
             ? `<a href="${escapeHtml(project.project_url)}" class="project-dark-link" target="_blank">VISIT SITE &#8599;</a>`
             : '';
         const editHtml = CAN_EDIT
-            ? `<a href="${escapeHtml(editUrl)}" class="project-dark-link">EDIT &#9998;</a>`
+            ? `<button type="button" class="project-dark-link project-edit-button"
+                    data-action="edit" data-id="${escapeHtml(project.id)}">EDIT &#9998;</button>`
             : '';
         const deleteHtml = CAN_DELETE
             ? `<button type="button" class="button button-danger"
@@ -252,6 +253,7 @@
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const projectData = await response.json();
+            latestProjects = new Map(projectData.map(project => [project.id, project]));
             const totalPages = Number(response.headers.get('X-Total-Pages')) || 1;
             currentPage = Number(response.headers.get('X-Current-Page')) || page || 1;
             updateUrl(searchQuery, currentPage);
@@ -328,11 +330,51 @@
     }
 
     const projectForm = document.getElementById('project-form');
+    const projectModal = document.getElementById('add-project-modal');
+    const projectModalTitle = document.getElementById('add-project-modal-title');
+    const projectSubmitButton = projectForm
+        ? projectForm.querySelector('button[type="submit"]')
+        : null;
 
-    async function addProject(event) {
+    function resetProjectModal() {
+        editingProjectId = null;
+        if (!projectForm) return;
+        projectForm.reset();
+        if (projectModalTitle) projectModalTitle.textContent = 'Tambah Proyek Baru';
+        if (projectSubmitButton) projectSubmitButton.textContent = 'Tambah Proyek';
+    }
+
+    function openEditProjectModal(project) {
+        if (!projectForm || !project) return;
+
+        editingProjectId = project.id;
+        const fields = projectForm.elements;
+        fields.namedItem('title').value = project.title || '';
+        fields.namedItem('slug').value = project.slug || '';
+        fields.namedItem('role').value = project.role || '';
+        fields.namedItem('description').value = project.description || '';
+        fields.namedItem('thumbnail').value = project.thumbnail || '';
+        fields.namedItem('project_url').value = project.project_url || '';
+        fields.namedItem('is_featured').checked = Boolean(project.is_featured);
+
+        const selectedTechIds = new Set((project.tech_stacks || []).map(String));
+        Array.from(fields.namedItem('tech_stacks').options).forEach(option => {
+            option.selected = selectedTechIds.has(option.value);
+        });
+
+        if (projectModalTitle) projectModalTitle.textContent = 'Edit Proyek';
+        if (projectSubmitButton) projectSubmitButton.textContent = 'Simpan Perubahan';
+        projectModal.showPopover();
+    }
+
+    async function submitProject(event) {
         event.preventDefault();
-        const submitButton = projectForm.querySelector('button[type="submit"]');
+        if (!projectForm) return;
+
+        const submitButton = projectSubmitButton
+            || projectForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
+        const isEditing = Boolean(editingProjectId);
 
         try {
             const fields = new FormData(projectForm);
@@ -346,29 +388,51 @@
                 is_featured: fields.get('is_featured') === 'on',
                 tech_stacks: fields.getAll('tech_stacks').map(value => Number(value)),
             };
-            await writeProject(BASE_PROJECTS_ENDPOINT, 'POST', payload);
-            projectForm.reset();
+            const url = isEditing
+                ? projectEndpoint(DETAIL_PROJECT_ENDPOINT, editingProjectId)
+                : BASE_PROJECTS_ENDPOINT;
+            await writeProject(url, isEditing ? 'PATCH' : 'POST', payload);
+            resetProjectModal();
             closeProjectModal();
-            showToast('Berhasil', 'Proyek baru berhasil ditambahkan!', 'success');
-            await fetchProjects(searchInput.value.trim(), 1);
+            showToast(
+                'Berhasil',
+                isEditing
+                    ? 'Proyek berhasil diperbarui!'
+                    : 'Proyek baru berhasil ditambahkan!',
+                'success',
+            );
+            await fetchProjects(searchInput.value.trim(), isEditing ? currentPage : 1);
         } catch (error) {
-            console.error('Error adding project:', error);
-            showToast('Gagal menambahkan proyek', error.message, 'error');
+            console.error('Error saving project:', error);
+            showToast(
+                isEditing ? 'Gagal memperbarui proyek' : 'Gagal menambahkan proyek',
+                error.message,
+                'error',
+            );
         } finally {
             submitButton.disabled = false;
         }
     }
 
     if (projectForm) {
-        projectForm.addEventListener('submit', addProject);
+        projectForm.addEventListener('submit', submitProject);
     }
 
-    // Event delegation untuk tombol star dan hapus
+    const addProjectButton = document.querySelector('[data-project-add]');
+    if (addProjectButton) {
+        addProjectButton.addEventListener('click', resetProjectModal);
+    }
+
+    // Event delegation untuk tombol edit, star, dan hapus
     gridContainer.addEventListener('click', async function (event) {
         const button = event.target.closest('button[data-action]');
         if (!button || button.disabled) return;
 
         const action = button.dataset.action;
+        if (action === 'edit') {
+            openEditProjectModal(latestProjects.get(button.dataset.id));
+            return;
+        }
         if (action === 'delete' && !window.confirm('Yakin ingin menghapus project ini?')) return;
 
         button.disabled = true;

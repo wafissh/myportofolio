@@ -1167,6 +1167,13 @@ h1,
     color: var(--accent);
 }
 
+.project-edit-button {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
 @media (max-width: 768px) {
     .projects-dark-grid {
         grid-template-columns: 1fr;
